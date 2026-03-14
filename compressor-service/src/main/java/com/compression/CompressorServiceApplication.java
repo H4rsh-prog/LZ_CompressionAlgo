@@ -6,12 +6,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Set;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 
+import com.compression.service.BinaryTreeService;
 import com.compression.service.DataBlockService;
 
 import tools.jackson.databind.ObjectMapper;
@@ -40,5 +42,9 @@ public class CompressorServiceApplication {
 			}
 		});
 		for(String key : sortedKeys) System.out.println(key+" : "+frequencyTable.get(key));
+		PriorityQueue<String> hexQueue = new PriorityQueue<>((o1, o2) -> frequencyTable.get(o2)-frequencyTable.get(o1));
+		hexQueue.addAll(sortedKeys);
+		BinaryTreeService binTreeService = new BinaryTreeService(hexQueue);
+		
 	}
 }
