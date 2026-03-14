@@ -1,13 +1,44 @@
 package com.compression;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
+
+import com.compression.service.DataBlockService;
+
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootApplication
 public class CompressorServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(CompressorServiceApplication.class, args);
-		
+		ApplicationContext cx = SpringApplication.run(CompressorServiceApplication.class, args);
+		ObjectMapper mapper = new ObjectMapper();
+		byte[] byteArr = mapper.writeValueAsBytes(mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class));
+		DataBlockService dbService = cx.getBean(DataBlockService.class);
+		HashMap<String, Integer> frequencyTable = new HashMap<>();
+		String hexCode = "";
+		for(byte b : byteArr) {
+			hexCode += Integer.toHexString(b);
+		}
+		dbService.findRepetition(hexCode, frequencyTable);
+		System.out.println(hexCode);
+		List<String> sortedKeys = new ArrayList<>();
+		for(String key : frequencyTable.keySet()) sortedKeys.add(key);
+		Collections.sort(sortedKeys, new Comparator<String>() {
+			@Override
+			public int compare(String o1, String o2) {
+				return frequencyTable.get(o1).intValue()-frequencyTable.get(o2).intValue();
+			}
+		});
+		for(String key : sortedKeys) System.out.println(key+" : "+frequencyTable.get(key));
 	}
 }
