@@ -19,7 +19,7 @@ public class BinaryTreeService {
 		this.sortedHexes = sortedHexes;
 		BinaryTreeNODE root;
 		BinaryTreeNODE TERMINATOR = new BinaryTreeNODE();
-		
+		TERMINATOR.initTree();
 		TERMINATOR.initNode(new ArrayList(List.of("TERMINATOR")), null, 0);
 		TERMINATOR.left.initNode(sortedHexes.poll(), TERMINATOR, 0);
 		root = this.head = TERMINATOR.left;

@@ -98,6 +98,7 @@ public class CompressionService {
 		int byteValue = 0;
 		for(int j=hex.length()-1,k=0;j>=0;j--,k++) {
 			int bitValue = 0;
+			System.out.println("current char : "+hex.charAt(j));
 			if(hexChar.contains(hex.charAt(j))) {
 				switch (hex.charAt(j)) {
 				case 'a':
@@ -122,7 +123,9 @@ public class CompressionService {
 				bitValue = Integer.parseInt(String.valueOf(hex.charAt(j)));
 			}
 			byteValue += (bitValue*(Math.pow(16, k)));
+			System.out.println("current bit value = "+bitValue+" ; merged byteValue : "+byteValue);
 		}
+		System.out.println("returning byteValue "+byteValue);
 		return byteValue;
 	}
 //	public String startCompression(String hexString) {

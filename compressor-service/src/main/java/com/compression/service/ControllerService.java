@@ -38,6 +38,7 @@ public class ControllerService {
 		this.compressService.initHexMapping(binTreeService.getHead());
 		ArrayList<String> compressedData = compressService.startCompression(hexArr);
 		this.repo.save(new CompressionKeysEntity(compressedData.hashCode(), compressService.getSortedHexes()));
+		System.out.println(compressService.getSortedHexes());
 		return compressedData;
 	}
 	public Object decompressData(ArrayList<String> hexArr) {
@@ -49,8 +50,13 @@ public class ControllerService {
 			};
 		}
 		this.compressService.setSortedHexes(entity.get().getSortedHexKeys());
+		System.out.println(compressService.getSortedHexes());
 		ArrayList<String> decompressedHexArr = this.compressService.startDecompression(hexArr);
-		
+		byte[] byteData = new byte[decompressedHexArr.size()];
+		for(int i=0;i<decompressedHexArr.size();i++) {
+			byteData[i] = (byte) CompressionService.calcByteFromHex(decompressedHexArr.get(i));
+		}
+		return this.mapper.readValue(byteData, Object.class);
 	}
 	
 //	public String compressData(Object data) {

@@ -17,6 +17,9 @@ public class BinaryTreeNODE implements Serializable {
 	transient private int binInt = 0;
 	private ArrayList<String> hex;
 	
+	public void initTree() {
+		serial = -2;
+	}
 	public void initNode(ArrayList<String> hex, BinaryTreeNODE parent, int base){
 		serial++;
 		this.binInt = serial;

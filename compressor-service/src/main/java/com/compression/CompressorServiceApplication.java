@@ -24,7 +24,7 @@ import tools.jackson.databind.ObjectMapper;
 public class CompressorServiceApplication {
 
 	public static void main(String[] args) {
-//		ApplicationContext cx = SpringApplication.run(CompressorServiceApplication.class, args);
+		ApplicationContext cx = SpringApplication.run(CompressorServiceApplication.class, args);
 //		ObjectMapper mapper = new ObjectMapper();
 //		byte[] byteArr = mapper.writeValueAsBytes(mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class));
 //		cx.getBean(ControllerService.class).compressData(mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class));
