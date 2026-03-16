@@ -24,7 +24,7 @@ import tools.jackson.databind.ObjectMapper;
 public class CompressorServiceApplication {
 
 	public static void main(String[] args) {
-		ApplicationContext cx = SpringApplication.run(CompressorServiceApplication.class, args);
+//		ApplicationContext cx = SpringApplication.run(CompressorServiceApplication.class, args);
 //		ObjectMapper mapper = new ObjectMapper();
 //		byte[] byteArr = mapper.writeValueAsBytes(mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class));
 //		cx.getBean(ControllerService.class).compressData(mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class));
@@ -59,5 +59,38 @@ public class CompressorServiceApplication {
 //		String decompressedHexCode = compressService.startDecompression(compressedHexCode);
 //		System.err.println(decompressedHexCode);
 //		System.out.println("DECOMPRESSION SUCCESSFUL = "+decompressedHexCode.equals(hexCode));
+		ObjectMapper mapper = new ObjectMapper();
+		BinaryTreeService binTreeService = new BinaryTreeService();
+		DataBlockService dataBlockService = new DataBlockService();
+		CompressionService compressionService = new CompressionService();
+		dataBlockService.setVerbose(true);
+		Object data = mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class);
+		byte[] byteArr = mapper.writeValueAsBytes(data);
+		ArrayList<String> hexArr = new ArrayList<>();
+		for(byte b : byteArr) {
+			hexArr.add(Integer.toHexString(b));
+		}
+		HashMap<ArrayList<String>, Integer> frequencyTable = dataBlockService.findRepetition(hexArr);
+		PriorityQueue<ArrayList<String>> hexQueue = new PriorityQueue<ArrayList<String>>(
+					(o1, o2) -> frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue()
+				);
+		hexQueue.addAll(frequencyTable.keySet());
+		binTreeService.initBinaryTree(hexQueue);
+		System.out.println(binTreeService.treeToString());
+		compressionService.initHexMapping(binTreeService.getHead());
+		System.out.println(hexArr);
+		ArrayList<String> compressedData = compressionService.startCompression(hexArr);
+		ArrayList<String> decompressedData = compressionService.startDecompression(compressedData);
+		System.out.println(compressedData.equals(decompressedData));
+		byte[] byteData = new byte[decompressedData.size()];
+		for(int i=0;i<decompressedData.size();i++) {
+			byteData[i] = (byte) CompressionService.calcByteFromHex(decompressedData.get(i));
+		}
+		String byteString = "";
+		for(byte b: byteData) {
+			byteString += (char)b;
+		}
+		System.out.println(byteString);
+		System.out.println(mapper.readValue(byteString, Object.class));
 	}
 }

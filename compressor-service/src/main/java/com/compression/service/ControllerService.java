@@ -1,5 +1,7 @@
 package com.compression.service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
@@ -20,22 +22,26 @@ public class ControllerService {
 	@Autowired CompressionService compressService;
 	@Autowired CompressionKeysRepository repo;
 	
-	public String compressData(Object data) {
-		String hexCode = "";
-		for(byte b : this.mapper.writeValueAsBytes(data)) {
-			hexCode += Integer.toHexString(b);
+	public ArrayList<String> compressData(Object data) {
+		byte[] byteArr = this.mapper.writeValueAsBytes(data);
+		ArrayList<String> hexArr = new ArrayList<>();
+		for(byte b : byteArr) {
+			hexArr.add(Integer.toHexString(b));
 		}
-		Map<String, Integer> frequencyTable = this.dataBlockService.findRepetition(hexCode);
-		PriorityQueue<String> hexQueue = new PriorityQueue<String>((o1, o2) -> frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue());
+		HashMap<ArrayList<String>, Integer> frequencyTable = this.dataBlockService.findRepetition(hexArr);
+		PriorityQueue<ArrayList<String>> hexQueue = new PriorityQueue<ArrayList<String>>(
+					(o1, o2) -> frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue()
+				);
 		hexQueue.addAll(frequencyTable.keySet());
 		this.binTreeService.initBinaryTree(hexQueue);
-		this.compressService.initHexMapping(this.binTreeService.getHead());
-		String compressedData = this.compressService.startCompression(hexCode);
-		this.repo.save(new CompressionKeysEntity(compressedData.hashCode(), this.compressService.getSortedHexes()));
+		System.out.println(this.binTreeService.treeToString());
+		this.compressService.initHexMapping(binTreeService.getHead());
+		ArrayList<String> compressedData = compressService.startCompression(hexArr);
+		this.repo.save(new CompressionKeysEntity(compressedData.hashCode(), compressService.getSortedHexes()));
 		return compressedData;
 	}
-	public Object decompressData(String data) {
-		Optional<CompressionKeysEntity> entity = this.repo.findById(data.hashCode());
+	public Object decompressData(ArrayList<String> hexArr) {
+		Optional<CompressionKeysEntity> entity = this.repo.findById(hexArr.hashCode());
 		if(entity.isEmpty()) {
 			return new Object() {
 				public String status = "failed";
@@ -43,6 +49,33 @@ public class ControllerService {
 			};
 		}
 		this.compressService.setSortedHexes(entity.get().getSortedHexKeys());
-		return this.mapper.readValue(this.compressService.startDecompression(data), Object.class);
+		ArrayList<String> decompressedHexArr = this.compressService.startDecompression(hexArr);
+		
 	}
+	
+//	public String compressData(Object data) {
+//		String hexCode = "";
+//		for(byte b : this.mapper.writeValueAsBytes(data)) {
+//			hexCode += Integer.toHexString(b);
+//		}
+//		Map<String, Integer> frequencyTable = this.dataBlockService.findRepetition(hexCode);
+//		PriorityQueue<String> hexQueue = new PriorityQueue<String>((o1, o2) -> frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue());
+//		hexQueue.addAll(frequencyTable.keySet());
+//		this.binTreeService.initBinaryTree(hexQueue);
+//		this.compressService.initHexMapping(this.binTreeService.getHead());
+//		String compressedData = this.compressService.startCompression(hexCode);
+//		this.repo.save(new CompressionKeysEntity(compressedData.hashCode(), this.compressService.getSortedHexes()));
+//		return compressedData;
+//	}
+//	public Object decompressData(String data) {
+//		Optional<CompressionKeysEntity> entity = this.repo.findById(data.hashCode());
+//		if(entity.isEmpty()) {
+//			return new Object() {
+//				public String status = "failed";
+//				public String reason = "compression entity for given data not found in repository";
+//			};
+//		}
+//		this.compressService.setSortedHexes(entity.get().getSortedHexKeys());
+//		return this.mapper.readValue(this.compressService.startDecompression(data), Object.class);
+//	}
 }

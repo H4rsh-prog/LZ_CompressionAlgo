@@ -15,5 +15,5 @@ import lombok.NoArgsConstructor;
 public class CompressionKeysEntity {
 	@Id
 	private int dataHash;
-	private ArrayList<String> sortedHexKeys;
+	private ArrayList<ArrayList<String>> sortedHexKeys;
 }

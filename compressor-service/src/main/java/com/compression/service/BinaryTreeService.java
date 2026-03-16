@@ -1,26 +1,41 @@
 package com.compression.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Queue;
 
 import org.springframework.stereotype.Service;
 
 import com.compression.model.BinaryTreeNODE;
 
+import lombok.Getter;
+
 @Service
 public class BinaryTreeService {
-	private BinaryTreeNODE head;
-	private Queue<String> sortedHexes;
+	@Getter private BinaryTreeNODE head;
+	private Queue<ArrayList<String>> sortedHexes;
 	
-	public void initBinaryTree(Queue<String> sortedHexes) {
+	public void initBinaryTree(Queue<ArrayList<String>> sortedHexes) {
 		this.sortedHexes = sortedHexes;
 		BinaryTreeNODE root;
 		BinaryTreeNODE TERMINATOR = new BinaryTreeNODE();
-		TERMINATOR.initNode("TERMINATOR", null, 0);
+		
+		TERMINATOR.initNode(new ArrayList(List.of("TERMINATOR")), null, 0);
 		TERMINATOR.left.initNode(sortedHexes.poll(), TERMINATOR, 0);
 		root = this.head = TERMINATOR.left;
 		insertNode(root, TERMINATOR, 0, 0, true, false);
 		System.out.println(treeToString());
 	}
+//	public void initBinaryTree(Queue<String> sortedHexes) {
+//		this.sortedHexes = sortedHexes;
+//		BinaryTreeNODE root;
+//		BinaryTreeNODE TERMINATOR = new BinaryTreeNODE();
+//		TERMINATOR.initNode("TERMINATOR", null, 0);
+//		TERMINATOR.left.initNode(sortedHexes.poll(), TERMINATOR, 0);
+//		root = this.head = TERMINATOR.left;
+//		insertNode(root, TERMINATOR, 0, 0, true, false);
+//		System.out.println(treeToString());
+//	}
 	public String treeToString() {
 		StringBuilder sb = new StringBuilder();
 		traversePreOrder(sb, "", "├──", this.head);
@@ -30,7 +45,7 @@ public class BinaryTreeService {
 	    if (node != null) {
 	        sb.append(padding);
 	        sb.append(pointer);
-	        sb.append(Integer.toBinaryString(node.getBin()));
+	        sb.append(node);
 	        sb.append("\n");
 
 	        StringBuilder paddingBuilder = new StringBuilder(padding);
@@ -86,8 +101,5 @@ public class BinaryTreeService {
 				}
 			}
 		}
-	}
-	public BinaryTreeNODE getHead() {
-		return head;
 	}
 }

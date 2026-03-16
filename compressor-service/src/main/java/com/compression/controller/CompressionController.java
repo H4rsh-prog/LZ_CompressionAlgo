@@ -1,5 +1,7 @@
 package com.compression.controller;
 
+import java.util.ArrayList;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,7 +16,7 @@ public class CompressionController {
 	@Autowired ControllerService service;
 	
 	@PostMapping("/compress")
-	public String compressData(@RequestBody Object data) {
+	public ArrayList<String> compressData(@RequestBody Object data) {
 		return this.service.compressData(data);
 	}
 	@GetMapping("/decompress")
