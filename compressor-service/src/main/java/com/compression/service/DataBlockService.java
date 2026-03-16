@@ -3,6 +3,7 @@ package com.compression.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Service;
 public class DataBlockService {
 	private int maxBytesUsed = 1;
 	
-	public void findRepetition(String hexCode, Map<String, Integer> frequencyTable) {
+	public Map<String, Integer> findRepetition(String hexCode) {
+		HashMap<String, Integer> frequencyTable = new HashMap<>();
 		System.out.println(hexCode);
 		HashSet<Character> potentialBlockStart = new HashSet<>();
 		for(int i=0;i<hexCode.length();i++) {
@@ -49,9 +51,9 @@ public class DataBlockService {
 			frequencyTable.remove(invalidKeys);
 		}
 		System.out.println("FINISHED FILTERING");
-		removeDuplicates(frequencyTable);
+		return frequencyTable;
 	}
-	public String findBlock(String hexCode, Map<String, Integer> frequencyTable, int startIndx) {
+	private String findBlock(String hexCode, Map<String, Integer> frequencyTable, int startIndx) {
 		Set<String> repeatingBlocks = frequencyTable.keySet();
 		String dataBlock = String.valueOf(hexCode.charAt(startIndx));
 		for(int i=startIndx+1;i<hexCode.length();i++) {
@@ -64,7 +66,7 @@ public class DataBlockService {
 		}
 		return dataBlock;
 	}
-	public void removeDuplicates(Map<String, Integer> frequencyTable) {
+	private void removeDuplicates(Map<String, Integer> frequencyTable) {
 		// TO PREFER BLOCK SIZE OR BLOCK REPETITION?
 		for(Entry<String, Integer> e : frequencyTable.entrySet()) {
 			System.out.println(e.getKey()+" : "+e.getValue());

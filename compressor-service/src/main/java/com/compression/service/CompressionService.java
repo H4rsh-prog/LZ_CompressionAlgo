@@ -12,12 +12,17 @@ import com.compression.model.BinaryTreeNODE;
 @Service
 public class CompressionService {
 	private HashMap<String, Byte> hexMapping = new HashMap<>();
-	private List<String> sortedHexes = new ArrayList<>();
+	private ArrayList<String> sortedHexes = new ArrayList<>();
 	
-	public HashMap<String, Byte> getHexMapping() {
-		return hexMapping;
+	
+	public ArrayList<String> getSortedHexes() {
+		return sortedHexes;
 	}
-	public void generateHexMapping(BinaryTreeNODE entryNode){
+	public void setSortedHexes(ArrayList<String> sortedHexes) {
+		this.sortedHexes = sortedHexes;
+	}
+	
+	public void initHexMapping(BinaryTreeNODE entryNode){
 		this.hexMapping.put(entryNode.getHex(), (byte) 0);
 		generateHexMappingRecursively(entryNode.left);
 		generateHexMappingRecursively(entryNode.right);

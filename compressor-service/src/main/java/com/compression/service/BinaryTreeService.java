@@ -2,15 +2,16 @@ package com.compression.service;
 
 import java.util.Queue;
 
+import org.springframework.stereotype.Service;
 
 import com.compression.model.BinaryTreeNODE;
 
-
+@Service
 public class BinaryTreeService {
 	private BinaryTreeNODE head;
 	private Queue<String> sortedHexes;
 	
-	public BinaryTreeService(Queue<String> sortedHexes) {
+	public void initBinaryTree(Queue<String> sortedHexes) {
 		this.sortedHexes = sortedHexes;
 		BinaryTreeNODE root;
 		BinaryTreeNODE TERMINATOR = new BinaryTreeNODE();
@@ -18,11 +19,14 @@ public class BinaryTreeService {
 		TERMINATOR.left.initNode(sortedHexes.poll(), TERMINATOR, 0);
 		root = this.head = TERMINATOR.left;
 		insertNode(root, TERMINATOR, 0, 0, true, false);
+		System.out.println(treeToString());
+	}
+	public String treeToString() {
 		StringBuilder sb = new StringBuilder();
 		traversePreOrder(sb, "", "├──", this.head);
-		System.out.println(sb.toString());
+		return sb.toString();
 	}
-	public void traversePreOrder(StringBuilder sb, String padding, String pointer, BinaryTreeNODE node) {	//STOLEN METHOD FOR PRINTING TREE
+	private void traversePreOrder(StringBuilder sb, String padding, String pointer, BinaryTreeNODE node) {	//STOLEN METHOD FOR PRINTING TREE
 	    if (node != null) {
 	        sb.append(padding);
 	        sb.append(pointer);
@@ -40,7 +44,7 @@ public class BinaryTreeService {
 	        if(node.right.getBin()!=0)traversePreOrder(sb, paddingForBoth, pointerForRight, node.right);
 	    }
 	}
-	public void insertNode(BinaryTreeNODE root, BinaryTreeNODE parent, int h, int leaf, boolean active_shift, boolean shifted) {
+	private void insertNode(BinaryTreeNODE root, BinaryTreeNODE parent, int h, int leaf, boolean active_shift, boolean shifted) {
 		if(sortedHexes.size()<1){System.out.println("NO ELEMENTS REMAINING CLOSING OP");return;}
 		System.out.println("``````````````INSERTION ITERATION`\nLEAF="+leaf+"; HEIGHT="+h+"; ACTIVE_SHIFT="+active_shift+"; SHIFTED="+shifted+"; ELEMENTS_REMAINING="+this.sortedHexes.size());
 		System.out.println("PREVIOUS NODE WAS :"+parent);

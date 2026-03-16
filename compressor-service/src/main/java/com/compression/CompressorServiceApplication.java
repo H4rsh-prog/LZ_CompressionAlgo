@@ -15,6 +15,7 @@ import org.springframework.context.ApplicationContext;
 
 import com.compression.service.BinaryTreeService;
 import com.compression.service.CompressionService;
+import com.compression.service.ControllerService;
 import com.compression.service.DataBlockService;
 
 import tools.jackson.databind.ObjectMapper;
@@ -24,38 +25,39 @@ public class CompressorServiceApplication {
 
 	public static void main(String[] args) {
 		ApplicationContext cx = SpringApplication.run(CompressorServiceApplication.class, args);
-		ObjectMapper mapper = new ObjectMapper();
-		byte[] byteArr = mapper.writeValueAsBytes(mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class));
-		DataBlockService dbService = cx.getBean(DataBlockService.class);
-		HashMap<String, Integer> frequencyTable = new HashMap<>();
-		String hexCode = "";
-		for(byte b : byteArr) {
-			hexCode += Integer.toHexString(b);
-		}
-		dbService.findRepetition(hexCode, frequencyTable);
-		System.out.println(hexCode);
-		List<String> sortedKeys = new ArrayList<>();
-		for(String key : frequencyTable.keySet()) sortedKeys.add(key);
-		Collections.sort(sortedKeys, new Comparator<String>() {
-			@Override
-			public int compare(String o1, String o2) {
-				return frequencyTable.get(o1).intValue()-frequencyTable.get(o2).intValue();
-			}
-		});
-		for(String key : sortedKeys) System.out.println(key+" : "+frequencyTable.get(key));
-		PriorityQueue<String> hexQueue = new PriorityQueue<>((o1, o2) -> frequencyTable.get(o2)-frequencyTable.get(o1));
-		hexQueue.addAll(sortedKeys);
-		BinaryTreeService binTreeService = new BinaryTreeService(hexQueue);
-		System.out.println("HUFFMAN TREE CONSTRUCTED");
-		CompressionService compressService = new CompressionService();
-		System.out.println("STARTING COMPRESSION");
-		compressService.generateHexMapping(binTreeService.getHead());
-		System.out.println(compressService.getHexMapping());
-		System.out.println(hexCode);
-		String compressedHexCode = compressService.startCompression(hexCode);
-		System.err.println(compressedHexCode);
-		String decompressedHexCode = compressService.startDecompression(compressedHexCode);
-		System.err.println(decompressedHexCode);
-		System.out.println("DECOMPRESSION SUCCESSFUL = "+decompressedHexCode.equals(hexCode));
+//		ObjectMapper mapper = new ObjectMapper();
+//		byte[] byteArr = mapper.writeValueAsBytes(mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class));
+//		cx.getBean(ControllerService.class).compressData(mapper.readValue("{\"name\":\"this_name_will_repeat_maybe\",\"property\":\"name_maybe\",\"other_property\":\"repeating?\",\"maybe_more_properties\":\"name\"}", Object.class));
+//		DataBlockService dbService = cx.getBean(DataBlockService.class);
+//		HashMap<String, Integer> frequencyTable = new HashMap<>();
+//		String hexCode = "";
+//		for(byte b : byteArr) {
+//			hexCode += Integer.toHexString(b);
+//		}
+//		dbService.findRepetition(hexCode);
+//		System.out.println(hexCode);
+//		List<String> sortedKeys = new ArrayList<>();
+//		for(String key : frequencyTable.keySet()) sortedKeys.add(key);
+//		Collections.sort(sortedKeys, new Comparator<String>() {
+//			@Override
+//			public int compare(String o1, String o2) {
+//				return frequencyTable.get(o1).intValue()-frequencyTable.get(o2).intValue();
+//			}
+//		});
+//		for(String key : sortedKeys) System.out.println(key+" : "+frequencyTable.get(key));
+//		PriorityQueue<String> hexQueue = new PriorityQueue<>((o1, o2) -> frequencyTable.get(o2)-frequencyTable.get(o1));
+//		hexQueue.addAll(sortedKeys);
+//		BinaryTreeService binTreeService = new BinaryTreeService();
+//		binTreeService.initBinaryTree(hexQueue);
+//		System.out.println("HUFFMAN TREE CONSTRUCTED");
+//		CompressionService compressService = new CompressionService();
+//		System.out.println("STARTING COMPRESSION");
+//		compressService.initHexMapping(binTreeService.getHead());
+//		System.out.println(hexCode);
+//		String compressedHexCode = compressService.startCompression(hexCode);
+//		System.err.println(compressedHexCode);
+//		String decompressedHexCode = compressService.startDecompression(compressedHexCode);
+//		System.err.println(decompressedHexCode);
+//		System.out.println("DECOMPRESSION SUCCESSFUL = "+decompressedHexCode.equals(hexCode));
 	}
 }
