@@ -14,6 +14,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 
 import com.compression.service.BinaryTreeService;
+import com.compression.service.CompressionService;
 import com.compression.service.DataBlockService;
 
 import tools.jackson.databind.ObjectMapper;
@@ -45,6 +46,16 @@ public class CompressorServiceApplication {
 		PriorityQueue<String> hexQueue = new PriorityQueue<>((o1, o2) -> frequencyTable.get(o2)-frequencyTable.get(o1));
 		hexQueue.addAll(sortedKeys);
 		BinaryTreeService binTreeService = new BinaryTreeService(hexQueue);
-		
+		System.out.println("HUFFMAN TREE CONSTRUCTED");
+		CompressionService compressService = new CompressionService();
+		System.out.println("STARTING COMPRESSION");
+		compressService.generateHexMapping(binTreeService.getHead());
+		System.out.println(compressService.getHexMapping());
+		System.out.println(hexCode);
+		String compressedHexCode = compressService.startCompression(hexCode);
+		System.err.println(compressedHexCode);
+		String decompressedHexCode = compressService.startDecompression(compressedHexCode);
+		System.err.println(decompressedHexCode);
+		System.out.println("DECOMPRESSION SUCCESSFUL = "+decompressedHexCode.equals(hexCode));
 	}
 }

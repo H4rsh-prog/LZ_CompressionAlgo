@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class DataBlockService {
-
 	private int maxBytesUsed = 1;
 	
 	public void findRepetition(String hexCode, Map<String, Integer> frequencyTable) {

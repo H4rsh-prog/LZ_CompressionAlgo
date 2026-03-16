@@ -1,25 +1,34 @@
 package com.compression.model;
 
-public class BinaryTreeNODE {
-	private static int serial = -1;
+import java.io.Serializable;
+
+public class BinaryTreeNODE implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -6293322050169810169L;
+	transient private static int serial = -2;
 	public BinaryTreeNODE top;
 	public BinaryTreeNODE left;
 	public BinaryTreeNODE right;
-	private byte[] bin = new byte[10];
+	transient private int base = 0;
+	transient private byte[] bin = new byte[this.base+1];
 	private String hex;
-	private int base = 0;
 	
-	public BinaryTreeNODE(String hex) {
+	public void initNode(String hex, BinaryTreeNODE parent, int base){
 		serial++;
-		this.hex = hex;
-		this.bin[0] = (byte) serial;
-	}
-	public BinaryTreeNODE(String hex, int base) {
-		serial++;
-		this.hex = hex;
 		this.base = base;
-		this.bin[base] = (byte) serial;
+		this.bin[this.base] = (byte) serial;
+		this.hex = hex;
+		this.top = parent;
+		this.left = new BinaryTreeNODE();
+		this.right = new BinaryTreeNODE();
 	}
+	
 	public byte getBin() {return this.bin[this.base];}
 	public String getHex() {return this.hex;}
+	public void setHex(String hex) {this.hex = hex;}
+	public String toString() {
+		return "NODE {BIN : ["+this.bin[this.base]+"] ; HEX : ["+this.hex+"]}";
+	}
 }
