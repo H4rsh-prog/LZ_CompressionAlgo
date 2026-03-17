@@ -2,7 +2,6 @@ package com.compression.service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 
@@ -11,7 +10,9 @@ import org.springframework.stereotype.Service;
 
 import com.compression.dto.CompressionKeysRepository;
 import com.compression.model.CompressionKeysEntity;
+import com.compression.model.DecompressionRequest;
 
+import lombok.Setter;
 import tools.jackson.databind.ObjectMapper;
 
 @Service
@@ -22,7 +23,9 @@ public class ControllerService {
 	@Autowired CompressionService compressService;
 	@Autowired CompressionKeysRepository repo;
 	
-	public ArrayList<String> compressData(Object data) {
+	@Setter private boolean verbose = false;
+	
+	public ArrayList<String> compressData(Object data, boolean saveEntity) {
 		byte[] byteArr = this.mapper.writeValueAsBytes(data);
 		ArrayList<String> hexArr = new ArrayList<>();
 		for(byte b : byteArr) {
@@ -34,23 +37,25 @@ public class ControllerService {
 				);
 		hexQueue.addAll(frequencyTable.keySet());
 		this.binTreeService.initBinaryTree(hexQueue);
-		System.out.println(this.binTreeService.treeToString());
+		if(verbose) System.out.println(this.binTreeService.treeToString());
 		this.compressService.initHexMapping(binTreeService.getHead());
 		ArrayList<String> compressedData = compressService.startCompression(hexArr);
-		this.repo.save(new CompressionKeysEntity(compressedData.hashCode(), compressService.getSortedHexes()));
-		System.out.println(compressService.getSortedHexes());
+		if(saveEntity) this.repo.save(new CompressionKeysEntity(compressedData.hashCode(), compressService.getSortedHexes()));
+		if(verbose) System.out.println(compressService.getSortedHexes());
 		return compressedData;
 	}
-	public Object decompressData(ArrayList<String> hexArr) {
-		Optional<CompressionKeysEntity> entity = this.repo.findById(hexArr.hashCode());
-		if(entity.isEmpty()) {
-			return new Object() {
-				public String status = "failed";
-				public String reason = "compression entity for given data not found in repository";
-			};
+	public Object decompressData(ArrayList<String> hexArr, boolean savedEntity) {
+		if(savedEntity) {
+			Optional<CompressionKeysEntity> entity = this.repo.findById(hexArr.hashCode());
+			if(entity.isEmpty()) {
+				return new Object() {
+					public String status = "failed";
+					public String reason = "compression entity for given data not found in repository";
+				};
+			}
+			this.compressService.setSortedHexes(entity.get().getSortedHexKeys());
+			if(verbose) System.out.println(compressService.getSortedHexes());
 		}
-		this.compressService.setSortedHexes(entity.get().getSortedHexKeys());
-		System.out.println(compressService.getSortedHexes());
 		ArrayList<String> decompressedHexArr = this.compressService.startDecompression(hexArr);
 		byte[] byteData = new byte[decompressedHexArr.size()];
 		for(int i=0;i<decompressedHexArr.size();i++) {
@@ -58,30 +63,16 @@ public class ControllerService {
 		}
 		return this.mapper.readValue(byteData, Object.class);
 	}
-	
-//	public String compressData(Object data) {
-//		String hexCode = "";
-//		for(byte b : this.mapper.writeValueAsBytes(data)) {
-//			hexCode += Integer.toHexString(b);
-//		}
-//		Map<String, Integer> frequencyTable = this.dataBlockService.findRepetition(hexCode);
-//		PriorityQueue<String> hexQueue = new PriorityQueue<String>((o1, o2) -> frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue());
-//		hexQueue.addAll(frequencyTable.keySet());
-//		this.binTreeService.initBinaryTree(hexQueue);
-//		this.compressService.initHexMapping(this.binTreeService.getHead());
-//		String compressedData = this.compressService.startCompression(hexCode);
-//		this.repo.save(new CompressionKeysEntity(compressedData.hashCode(), this.compressService.getSortedHexes()));
-//		return compressedData;
-//	}
-//	public Object decompressData(String data) {
-//		Optional<CompressionKeysEntity> entity = this.repo.findById(data.hashCode());
-//		if(entity.isEmpty()) {
-//			return new Object() {
-//				public String status = "failed";
-//				public String reason = "compression entity for given data not found in repository";
-//			};
-//		}
-//		this.compressService.setSortedHexes(entity.get().getSortedHexKeys());
-//		return this.mapper.readValue(this.compressService.startDecompression(data), Object.class);
-//	}
+	public Object compressDataWithEntity(Object data) {
+		return new Object() {
+			public ArrayList<String> compressedData = compressData(data, false);
+			public ArrayList<ArrayList<String>> freqSortedHexes = compressService.getSortedHexes();
+			public int beforeCompressionSizeInBytes = mapper.writeValueAsBytes(data).length;
+			public int afterCompressionSizeInBytes = compressedData.size();
+		};
+	}
+	public Object decompressDataWithEntity(DecompressionRequest data) {
+		this.compressService.setSortedHexes(data.getFreqSortedHexes());
+		return decompressData(data.getCompressedData(), false);
+	}
 }

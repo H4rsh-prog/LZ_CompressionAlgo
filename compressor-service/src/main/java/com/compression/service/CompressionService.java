@@ -10,11 +10,14 @@ import org.springframework.stereotype.Service;
 
 import com.compression.model.BinaryTreeNODE;
 
+import lombok.Setter;
+
 
 @Service
 public class CompressionService {
 	private HashMap<ArrayList<String>, Integer> hexMapping = new HashMap<>();
 	private ArrayList<ArrayList<String>> sortedHexes = new ArrayList<>();
+	@Setter private boolean verbose = false;
 	
 	
 	public ArrayList<ArrayList<String>> getSortedHexes() {
@@ -35,7 +38,7 @@ public class CompressionService {
 				return hexMapping.get(o1).intValue()-hexMapping.get(o2).intValue();
 			}
 		});
-		System.out.println("SORTED HEX : "+sortedHexes);
+		if(verbose) System.out.println("SORTED HEX : "+sortedHexes);
 	}
 	private void generateHexMappingRecursively(BinaryTreeNODE node) {
 		if(node != null && node.getBin() != 0) {
@@ -45,16 +48,16 @@ public class CompressionService {
 		}
 	}
 	public ArrayList<String> startCompression(ArrayList<String> hexArr) {
-		System.out.println("``````````````````````````COMPRESSION FUNCTION");
-		System.out.println("INPUT HEX STRING = "+hexArr);
-		System.out.println("STARTING WITH STRING LENGTH : "+hexArr.size());
+		if(verbose) System.out.println("``````````````````````````COMPRESSION FUNCTION");
+		if(verbose) System.out.println("INPUT HEX STRING = "+hexArr);
+		if(verbose) System.out.println("STARTING WITH STRING LENGTH : "+hexArr.size());
 		ArrayList<String> backupHexArr = new ArrayList<>(hexArr);
 		for(ArrayList<String> hex : this.sortedHexes) {
 			findAndReplace(hexArr, hex);
 		}
-		System.out.println("STRING COMPRESSESD TO LENGTH : "+hexArr.size());
-		System.err.println(hexArr);
-		System.out.println("``````````````````````````COMPRESSION FUNCTION");
+		if(verbose) System.out.println("STRING COMPRESSESD TO LENGTH : "+hexArr.size());
+		if(verbose) System.err.println(hexArr);
+		if(verbose) System.out.println("``````````````````````````COMPRESSION FUNCTION");
 		return hexArr;
 	}
 	private void findAndReplace(ArrayList<String> searchParam, ArrayList<String> query) {
@@ -77,9 +80,9 @@ public class CompressionService {
 		}
 	}
 	public ArrayList<String> startDecompression(ArrayList<String> hexArr) {
-		System.out.println("``````````````````````````DECOMPRESSION FUNCTION");
-		System.out.println("COMPRESSED DATA = "+hexArr);
-		System.out.println("STARTING WITH STRING LENGTH : "+hexArr.size());
+		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION");
+		if(verbose) System.out.println("COMPRESSED DATA = "+hexArr);
+		if(verbose) System.out.println("STARTING WITH STRING LENGTH : "+hexArr.size());
 		for(int i=0;i<hexArr.size();i++) {
 			if(hexArr.get(i).startsWith(".")) {
 				String hex = hexArr.get(i).substring(1);
@@ -88,9 +91,9 @@ public class CompressionService {
 				hexArr.addAll(i, sortedHexes.get(byteValue));
 			}
 		}
-		System.out.println("STRING DECOMPRESSESD TO LENGTH : "+hexArr.size());
-		System.err.println(hexArr);
-		System.out.println("``````````````````````````DECOMPRESSION FUNCTION");
+		if(verbose) System.out.println("STRING DECOMPRESSESD TO LENGTH : "+hexArr.size());
+		if(verbose) System.err.println(hexArr);
+		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION");
 		return hexArr;
 	}
 	public static int calcByteFromHex(String hex){
@@ -98,7 +101,6 @@ public class CompressionService {
 		int byteValue = 0;
 		for(int j=hex.length()-1,k=0;j>=0;j--,k++) {
 			int bitValue = 0;
-			System.out.println("current char : "+hex.charAt(j));
 			if(hexChar.contains(hex.charAt(j))) {
 				switch (hex.charAt(j)) {
 				case 'a':
@@ -123,25 +125,7 @@ public class CompressionService {
 				bitValue = Integer.parseInt(String.valueOf(hex.charAt(j)));
 			}
 			byteValue += (bitValue*(Math.pow(16, k)));
-			System.out.println("current bit value = "+bitValue+" ; merged byteValue : "+byteValue);
 		}
-		System.out.println("returning byteValue "+byteValue);
 		return byteValue;
 	}
-//	public String startCompression(String hexString) {
-//		System.out.println("STARTING WITH STRING LENGTH : "+hexString.length());
-//		for(ArrayList<String> hex : this.sortedHexes) {
-//			hexString = hexString.replaceAll(hex, "."+Integer.toHexString(hexMapping.get(hex)));
-//		}
-//		System.out.println("STRING COMPRESSESD TO LENGTH : "+hexString.length());
-//		return hexString;
-//	}
-//	public String startDecompression(String hexString) {
-//		System.out.println("STARTING WITH COMPRESSED STRING LENGTH : "+hexString.length());
-//		for(int i=0;i<this.sortedHexes.size();i++) {
-//			hexString = hexString.replaceAll("[.]"+Integer.toHexString(i), this.sortedHexes.get(i));
-//		}
-//		System.out.println("STRING DECOMPRESSESD TO LENGTH : "+hexString.length());
-//		return hexString;
-//	}
 }
