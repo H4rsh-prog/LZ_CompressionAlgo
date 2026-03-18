@@ -12,6 +12,7 @@ import com.compression.dto.CompressionKeysRepository;
 import com.compression.model.CompressionKeysEntity;
 import com.compression.model.DecompressionRequest;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Setter;
 import tools.jackson.databind.ObjectMapper;
 
@@ -23,7 +24,7 @@ public class ControllerService {
 	@Autowired CompressionService compressService;
 	@Autowired CompressionKeysRepository repo;
 	
-	@Setter private boolean verbose = false;
+	@Setter private boolean verbose = true;
 	
 	public ArrayList<String> compressData(Object data, boolean saveEntity) {
 		byte[] byteArr = this.mapper.writeValueAsBytes(data);
@@ -61,6 +62,11 @@ public class ControllerService {
 		for(int i=0;i<decompressedHexArr.size();i++) {
 			byteData[i] = (byte) CompressionService.calcByteFromHex(decompressedHexArr.get(i));
 		}
+		String jsonString = "";
+		for(byte b : byteData) {
+			jsonString += (char) b;
+		}
+		System.out.println(jsonString);
 		return this.mapper.readValue(byteData, Object.class);
 	}
 	public Object compressDataWithEntity(Object data) {
@@ -72,7 +78,15 @@ public class ControllerService {
 		};
 	}
 	public Object decompressDataWithEntity(DecompressionRequest data) {
+		System.out.println("CURRENT : "+this.compressService.getSortedHexes());
+		System.out.println("NEW : "+data.getFreqSortedHexes());
 		this.compressService.setSortedHexes(data.getFreqSortedHexes());
 		return decompressData(data.getCompressedData(), false);
+	}
+	@PostConstruct
+	private void initVerbose(){
+		this.dataBlockService.setVerbose(verbose);
+		this.binTreeService.setVerbose(verbose);
+		this.compressService.setVerbose(verbose);
 	}
 }
