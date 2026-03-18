@@ -19,7 +19,7 @@ import tools.jackson.databind.ObjectMapper;
 public class CompressorServiceApplication {
 
 	public static void main(String[] args) {
-		ApplicationContext cx = SpringApplication.run(CompressorServiceApplication.class, args);ObjectMapper mapper = new ObjectMapper();
+//		ApplicationContext cx = SpringApplication.run(CompressorServiceApplication.class, args);ObjectMapper mapper = new ObjectMapper();
 		/*BinaryTreeService binTreeService = new BinaryTreeService();
 		DataBlockService dataBlockService = new DataBlockService();
 		CompressionService compressionService = new CompressionService();

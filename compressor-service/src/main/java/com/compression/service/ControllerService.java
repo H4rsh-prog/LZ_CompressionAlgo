@@ -33,11 +33,7 @@ public class ControllerService {
 			hexArr.add(Integer.toHexString(b));
 		}
 		HashMap<ArrayList<String>, Integer> frequencyTable = this.dataBlockService.findRepetition(hexArr);
-		PriorityQueue<ArrayList<String>> hexQueue = new PriorityQueue<ArrayList<String>>(
-					(o1, o2) -> frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue()
-				);
-		hexQueue.addAll(frequencyTable.keySet());
-		this.binTreeService.initBinaryTree(hexQueue);
+		this.binTreeService.initBinaryTree(this.dataBlockService.generateQueueFromFrequency(frequencyTable));
 		if(verbose) System.out.println(this.binTreeService.treeToString());
 		this.compressService.initHexMapping(binTreeService.getHead());
 		ArrayList<String> compressedData = compressService.startCompression(hexArr);

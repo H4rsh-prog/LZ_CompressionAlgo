@@ -14,8 +14,9 @@ public class FileHandlingService {
 		ArrayList<String> hexArr = new ArrayList<>();
 		FileInputStream fis = new FileInputStream(file);
 		byte[] byteArr = fis.readAllBytes();
-		for(byte b : byteArr) {
-			hexArr.add(Integer.toHexString(b));
+		for(int i=0;i<byteArr.length;i++) {
+			System.out.print("\r Bytes loaded ["+i+"/"+byteArr.length+"]");
+			hexArr.add(Integer.toHexString(byteArr[i]));
 		}
 		return hexArr;
 	}

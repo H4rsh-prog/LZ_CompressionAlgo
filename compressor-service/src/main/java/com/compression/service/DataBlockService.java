@@ -3,6 +3,8 @@ package com.compression.service;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -50,7 +52,7 @@ public class DataBlockService {
 		if (verbose) System.out.println("after filtering : "+frequencyTable);
 		return frequencyTable;
 	}
-	public ArrayList<String> findBlock(ArrayList<String> hexArr, HashMap<ArrayList<String>, Integer> frequencyTable, int startIndx) {
+	private ArrayList<String> findBlock(ArrayList<String> hexArr, HashMap<ArrayList<String>, Integer> frequencyTable, int startIndx) {
 		Set<ArrayList<String>> repeatingBlocks = frequencyTable.keySet();
 		ArrayList<String> dataBlock = new ArrayList<>();
 		dataBlock.add(hexArr.get(startIndx));
@@ -63,6 +65,13 @@ public class DataBlockService {
 			break;
 		}
 		return dataBlock;
+	}
+	public PriorityQueue<ArrayList<String>> generateQueueFromFrequency(HashMap<ArrayList<String>, Integer> frequencyTable){
+		PriorityQueue<ArrayList<String>> hexQueue = new PriorityQueue<ArrayList<String>>(
+				(o1, o2) -> frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue()
+			);
+		hexQueue.addAll(frequencyTable.keySet());
+		return hexQueue;
 	}
 	// LEGACY OPTIMIZATION TECHNIQUE
 //	public void removeDuplicatesBySize(HashMap<ArrayList<String>, Integer> frequencyTable) {
