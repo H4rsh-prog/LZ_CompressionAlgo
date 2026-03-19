@@ -1,7 +1,13 @@
 package com.compression.tests;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.PriorityQueue;
@@ -9,6 +15,7 @@ import java.util.PriorityQueue;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 import com.compression.service.BinaryTreeService;
 import com.compression.service.CompressionService;
@@ -56,12 +63,12 @@ public class FileCompressionTest {
 		testFrequencyTable(hexArr);
 	}
 	@Test
-	public void testFrequencyTable(ArrayList<String> hexArr) {
+	public void testFrequencyTable(ArrayList<String> hexArr) throws IOException {
 		HashMap<ArrayList<String>, Integer> frequencyTable = this.dataBlockService.findRepetition(hexArr);
 		System.out.println("FREQUENCT TABLE GENERATED");
 		testBinTree(frequencyTable);
 	}
-	@Test
+//	@Test
 	public void testBinTree(HashMap<ArrayList<String>, Integer> frequencyTable) {
 		PriorityQueue<ArrayList<String>> hexQueue = this.dataBlockService.generateQueueFromFrequency(frequencyTable);
 		System.out.println("PRIORITY QUEUE GENERATED");

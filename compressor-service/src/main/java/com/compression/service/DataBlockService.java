@@ -23,6 +23,7 @@ public class DataBlockService {
 		HashSet<String> potentialBlockStart = new HashSet<>();
 		if (verbose) System.out.println(hexArr);
 		for(int i=0;i<hexArr.size();i++) {
+			System.out.print("FINDING REPETITION PROGRESS : ["+i+"/"+hexArr.size()+"]\r");
 			if(potentialBlockStart.contains(hexArr.get(i))) {
 				ArrayList<String> dataBlock = findBlock(hexArr, frequencyTable, i);
 				frequencyTable.put(dataBlock, frequencyTable.getOrDefault(dataBlock, 0)+1);

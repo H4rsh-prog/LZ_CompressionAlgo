@@ -1,5 +1,6 @@
 package com.compression;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,6 +53,7 @@ public class CompressorServiceApplication {
 			byteString += (char)b;
 		}
 		System.out.println(byteString);*/
+		
 		
 	}
 }
