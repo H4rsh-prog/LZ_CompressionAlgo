@@ -29,8 +29,6 @@ public class FileCompressionTest {
 	protected BinaryTreeService binTreeService;
 	protected CompressionService compressionService;
 	protected FileHandlingService fileHandlerService;
-	protected ArrayList<String> hexArr;
-	protected HashMap<ArrayList<String>, Integer> frequencyTable;
 	
 	@BeforeEach
 	public void setUp() {
@@ -62,11 +60,12 @@ public class FileCompressionTest {
 		System.out.println("HEX GENERATED");
 		testFrequencyTable(hexArr);
 	}
-	@Test
+//	@Test
 	public void testFrequencyTable(ArrayList<String> hexArr) throws IOException {
 		HashMap<ArrayList<String>, Integer> frequencyTable = this.dataBlockService.findRepetition(hexArr);
 		System.out.println("FREQUENCT TABLE GENERATED");
-		testBinTree(frequencyTable);
+//		testBinTree(frequencyTable);
+		testCompressionWithoutBinaryTree(frequencyTable, hexArr);
 	}
 //	@Test
 	public void testBinTree(HashMap<ArrayList<String>, Integer> frequencyTable) {
@@ -76,24 +75,30 @@ public class FileCompressionTest {
 		System.out.println("BINARY TREE INIT");
 		System.out.println(this.binTreeService.treeToString());
 	}
-//	@Test
-	public void testFileCompression() throws IOException {
-		System.out.println(inputFile.getTotalSpace());
-		ArrayList<String> hexArr = this.fileHandlerService.readFileHex(inputFile);
-		HashMap<ArrayList<String>, Integer> frequencyTable = this.dataBlockService.findRepetition(hexArr);
-		System.out.println(frequencyTable);
-		PriorityQueue<ArrayList<String>> hexQueue = this.dataBlockService.generateQueueFromFrequency(frequencyTable);
-		frequencyTable = null;
-		System.out.println(hexQueue);
-		this.binTreeService.initBinaryTree(hexQueue);
-		System.out.println("BIN TREE GENERATED");
-		this.compressionService.initHexMapping(this.binTreeService.getHead());
-		System.out.println("HEX MAPPING INITIALIZED");
-		ArrayList<String> compressedData = this.compressionService.startCompression(hexArr);
-		hexArr = null;
-		System.out.println(compressedData);
-		this.fileHandlerService.writeFileHex(compressedData, outputFile);
-		System.out.println(outputFile.getTotalSpace());
+	@Test
+	public void testCompressionWithoutBinaryTree(HashMap<ArrayList<String>, Integer> frequencyTable, ArrayList<String> hexArr) {
+		this.compressionService.generateSortedHexesFromFrequency(frequencyTable);
+		System.out.println("GENERATED SORTED HEX");
+		this.compressionService.startCompression(hexArr);
 	}
+//	@Test
+//	public void testFileCompression() throws IOException {
+//		System.out.println(inputFile.getTotalSpace());
+//		ArrayList<String> hexArr = this.fileHandlerService.readFileHex(inputFile);
+//		HashMap<ArrayList<String>, Integer> frequencyTable = this.dataBlockService.findRepetition(hexArr);
+//		System.out.println(frequencyTable);
+//		PriorityQueue<ArrayList<String>> hexQueue = this.dataBlockService.generateQueueFromFrequency(frequencyTable);
+//		frequencyTable = null;
+//		System.out.println(hexQueue);
+//		this.binTreeService.initBinaryTree(hexQueue);
+//		System.out.println("BIN TREE GENERATED");
+//		this.compressionService.initHexMapping(this.binTreeService.getHead());
+//		System.out.println("HEX MAPPING INITIALIZED");
+//		ArrayList<String> compressedData = this.compressionService.startCompression(hexArr);
+//		hexArr = null;
+//		System.out.println(compressedData);
+//		this.fileHandlerService.writeFileHex(compressedData, outputFile);
+//		System.out.println(outputFile.getTotalSpace());
+//	}
 	
 }

@@ -27,7 +27,7 @@ public class CompressionService {
 		this.sortedHexes = sortedHexes;
 	}
 	
-	public void initHexMapping(BinaryTreeNODE entryNode){
+	public void initHexMappingFromBinaryTreeNODE(BinaryTreeNODE entryNode){
 		this.hexMapping.put(entryNode.getHex(), 0);
 		generateHexMappingRecursively(entryNode.left);
 		generateHexMappingRecursively(entryNode.right);
@@ -47,12 +47,25 @@ public class CompressionService {
 			generateHexMappingRecursively(node.right);
 		}
 	}
+	public void generateSortedHexesFromFrequency(HashMap<ArrayList<String>, Integer> frequencyTable) {
+		this.hexMapping = frequencyTable;
+		this.sortedHexes.addAll(this.hexMapping.keySet());
+		this.sortedHexes.sort(new Comparator<ArrayList<String>>() {
+			@Override
+			public int compare(ArrayList<String> o1, ArrayList<String> o2) {
+				return hexMapping.get(o1).intValue()-hexMapping.get(o2).intValue();
+			}
+		});
+		this.sortedHexes = new ArrayList<>(this.sortedHexes.subList(0, 254));
+		if(verbose) System.out.println("SORTED HEX : "+sortedHexes);
+	}
 	public ArrayList<String> startCompression(ArrayList<String> hexArr) {
 		if(verbose) System.out.println("``````````````````````````COMPRESSION FUNCTION");
 		if(verbose) System.out.println("INPUT HEX STRING = "+hexArr);
 		if(verbose) System.out.println("STARTING WITH STRING LENGTH : "+hexArr.size());
 		ArrayList<String> backupHexArr = new ArrayList<>(hexArr);
 		for(ArrayList<String> hex : this.sortedHexes) {
+			System.out.println("COMPRESSING HEXES ["+this.sortedHexes.indexOf(hex)+"/"+this.sortedHexes.size()+"]");
 			findAndReplace(hexArr, hex);
 		}
 		if(verbose) System.out.println("STRING COMPRESSESD TO LENGTH : "+hexArr.size());
@@ -65,6 +78,7 @@ public class CompressionService {
 			if(searchParam.get(i).equals(query.get(0))) {
 				int j;
 				for(j=1;j<query.size();j++) {
+					if(i+j>=searchParam.size()) break;
 					if(searchParam.get(i+j).equals(query.get(j))) {
 						continue;
 					}

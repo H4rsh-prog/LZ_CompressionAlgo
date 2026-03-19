@@ -1,6 +1,7 @@
 package com.compression.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.PriorityQueue;
@@ -73,6 +74,19 @@ public class DataBlockService {
 			);
 		hexQueue.addAll(frequencyTable.keySet());
 		return hexQueue;
+	}
+	private void RudimentarySizeOptimization(HashMap<ArrayList<String>, Integer> frequencyTable) {
+		ArrayList<ArrayList<String>> sortedHexes = new ArrayList<>(frequencyTable.keySet());
+		sortedHexes.sort(new Comparator<ArrayList<String>>() {
+			@Override
+			public int compare(ArrayList<String> o1, ArrayList<String> o2) {
+				return frequencyTable.get(o1).intValue()-frequencyTable.get(o2).intValue();
+			}
+		});
+		for(int i=0;i<sortedHexes.size();i++) {
+			if(i<255) continue;
+			frequencyTable.remove(sortedHexes.get(i));
+		}
 	}
 	// LEGACY OPTIMIZATION TECHNIQUE
 //	public void removeDuplicatesBySize(HashMap<ArrayList<String>, Integer> frequencyTable) {
