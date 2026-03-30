@@ -35,5 +35,7 @@ public class FileHandlingService {
 			if(verbose) System.out.print("Bytes loaded ["+i+"/"+byteArrSize+"]\r");
 			bytes[i] = byteArr.get(i);
 		}
+		fos.write(bytes);
+		fos.close();
 	}
 }

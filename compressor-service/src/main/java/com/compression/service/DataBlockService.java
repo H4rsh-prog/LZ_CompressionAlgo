@@ -56,6 +56,7 @@ public class DataBlockService {
 		} else {
 			setMaxBytesUsed(1);
 		}
+		CompressionService.dictionaryLimit = this.maxBytesUsed;
 		for(ArrayList<Byte> invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ArrayList<Byte>>() {
 			@Override
 			public boolean test(ArrayList<Byte> t) {
