@@ -31,6 +31,7 @@ public class DataBlockService {
 				potentialBlockStart.add(byteArr.get(i));
 			}
 		}
+		int preLength = frequencyTable.size();
 		for(ArrayList<Byte> invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ArrayList<Byte>>() {
 			@Override
 			public boolean test(ArrayList<Byte> t) {
@@ -38,6 +39,22 @@ public class DataBlockService {
 			}
 		}).toList()) {
 			frequencyTable.remove(invalidKeys);
+		}
+		int postLength = frequencyTable.size();
+		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING NON REPEATING BLOCKS");
+		preLength = postLength;
+		if(preLength>255) {
+			if(preLength>Math.pow(2, 16)) {
+				if(preLength>Math.pow(2, 24)) {
+					setMaxBytesUsed(4);
+				} else {
+					setMaxBytesUsed(3);
+				}
+			} else {
+				setMaxBytesUsed(2);
+			}
+		} else {
+			setMaxBytesUsed(1);
 		}
 		for(ArrayList<Byte> invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ArrayList<Byte>>() {
 			@Override
@@ -47,6 +64,8 @@ public class DataBlockService {
 		}).toList()) {
 			frequencyTable.remove(invalidKeys);
 		}
+		postLength = frequencyTable.size();
+		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING BLOCKS LARGER THAN DICTIONARY LIMIT");
 		return blockOptimization(frequencyTable);
 	}
 	public ArrayList<Byte> findByteBlock(ArrayList<Byte> byteArr, HashMap<ArrayList<Byte>, Integer> frequencyTable, int startIndx) {
