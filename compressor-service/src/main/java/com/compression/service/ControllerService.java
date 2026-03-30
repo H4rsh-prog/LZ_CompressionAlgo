@@ -3,7 +3,6 @@ package com.compression.service;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Optional;
-import java.util.PriorityQueue;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,7 @@ public class ControllerService {
 		HashMap<ArrayList<String>, Integer> frequencyTable = this.dataBlockService.findRepetition(hexArr);
 		this.binTreeService.initBinaryTree(this.dataBlockService.generateQueueFromFrequency(frequencyTable));
 		if(verbose) System.out.println(this.binTreeService.treeToString());
-		this.compressService.initHexMapping(binTreeService.getHead());
+		this.compressService.initHexMappingFromBinaryTreeNODE(binTreeService.getHead());
 		ArrayList<String> compressedData = compressService.startCompression(hexArr);
 		if(saveEntity) this.repo.save(new CompressionKeysEntity(compressedData.hashCode(), compressService.getSortedHexes()));
 		if(verbose) System.out.println(compressService.getSortedHexes());

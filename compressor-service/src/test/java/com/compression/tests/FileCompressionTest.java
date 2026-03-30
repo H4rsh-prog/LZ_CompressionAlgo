@@ -2,7 +2,6 @@ package com.compression.tests;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -21,6 +20,8 @@ import com.compression.service.BinaryTreeService;
 import com.compression.service.CompressionService;
 import com.compression.service.DataBlockService;
 import com.compression.service.FileHandlingService;
+
+import jakarta.servlet.http.HttpSession;
 
 public class FileCompressionTest {
 	protected File inputFile;
@@ -75,11 +76,14 @@ public class FileCompressionTest {
 		System.out.println("BINARY TREE INIT");
 		System.out.println(this.binTreeService.treeToString());
 	}
-	@Test
-	public void testCompressionWithoutBinaryTree(HashMap<ArrayList<String>, Integer> frequencyTable, ArrayList<String> hexArr) {
+//	@Test
+	public void testCompressionWithoutBinaryTree(HashMap<ArrayList<String>, Integer> frequencyTable, ArrayList<String> hexArr) throws IOException {
 		this.compressionService.generateSortedHexesFromFrequency(frequencyTable);
 		System.out.println("GENERATED SORTED HEX");
-		this.compressionService.startCompression(hexArr);
+		ArrayList<String> compressedData = this.compressionService.startCompression(hexArr);
+		System.out.println("DATA COMPRESSED");
+		this.fileHandlerService.writeFileHex(compressedData, outputFile);
+		System.out.println("DATA WRITTEN");
 	}
 //	@Test
 //	public void testFileCompression() throws IOException {
