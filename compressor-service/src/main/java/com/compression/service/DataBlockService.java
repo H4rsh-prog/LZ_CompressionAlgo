@@ -1,9 +1,11 @@
 package com.compression.service;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -17,24 +19,50 @@ public class DataBlockService {
 	@Setter private int maxBytesUsed = 1;
 	@Setter private boolean verbose = false;
 	
-	public HashMap<ArrayList<Byte>, Integer> findRepetitiveBytes(ArrayList<Byte> byteArr) {
-		HashMap<ArrayList<Byte>, Integer> frequencyTable = new HashMap<>();
+	public HashMap<ByteBuffer, Integer> findRepetitiveBytes(byte[] byteArr) {
+		HashMap<ByteBuffer, Integer> frequencyTable = new HashMap<>();
+		HashMap<ByteBuffer, Integer> temp_frequencyTable = new HashMap<>();
 		HashSet<Byte> potentialBlockStart = new HashSet<>();
-		int byteArrSize = byteArr.size();
-		for(int i=0;i<byteArrSize;i++) {
+		int byteArrSize = byteArr.length;
+		int i;
+		for(i=0;i<100000;i++) {
 			if(verbose) System.out.print("FINDING REPETITION PROGRESS : ["+i+"/"+byteArrSize+"]\r");
-			if(potentialBlockStart.contains(byteArr.get(i))) {
-				ArrayList<Byte> dataBlock = findByteBlock(byteArr, frequencyTable, i);
-				frequencyTable.put(dataBlock, frequencyTable.getOrDefault(dataBlock, 0)+1);
-				i += dataBlock.size()-1;
+			if(potentialBlockStart.contains(byteArr[i])) {
+				ByteBuffer dataBlock = findByteBlock(byteArr, temp_frequencyTable, i);
+				temp_frequencyTable.put(dataBlock, temp_frequencyTable.getOrDefault(dataBlock, 0)+1);
+				i += dataBlock.limit()-1;
 			} else {
-				potentialBlockStart.add(byteArr.get(i));
+				potentialBlockStart.add(byteArr[i]);
 			}
 		}
+		if(verbose) System.out.print("COMMITING FIRST REPETITION BATCH... \r");
+		for(Entry<ByteBuffer, Integer> e: temp_frequencyTable.entrySet()) {
+			frequencyTable.put(e.getKey(), e.getValue());
+		}
+		temp_frequencyTable.clear();
+		while(i<byteArrSize) {
+			int k;
+			for(k=i;k<i+100000 && k<byteArrSize;k++) {
+				if(verbose) System.out.print("FINDING REPETITION PROGRESS : ["+k+"/"+byteArrSize+"]\r");
+				if(potentialBlockStart.contains(byteArr[k])) {
+					ByteBuffer dataBlock = findByteBlock(byteArr, temp_frequencyTable, k);
+					temp_frequencyTable.put(dataBlock, Math.max(frequencyTable.getOrDefault(dataBlock, 0), temp_frequencyTable.getOrDefault(dataBlock, 0))+1);
+					k += dataBlock.limit()-1;
+				} else {
+					potentialBlockStart.add(byteArr[k]);
+				}
+			}
+			if(verbose) System.out.print("COMMITING REPETITION BATCH NO. ["+(int)k%100000+"] \r");
+			for(Entry<ByteBuffer, Integer> e: temp_frequencyTable.entrySet()) {
+				frequencyTable.put(e.getKey(), frequencyTable.getOrDefault(e.getKey(), 0)+e.getValue());
+			}
+			temp_frequencyTable.clear();
+			i=k;
+		}
 		int preLength = frequencyTable.size();
-		for(ArrayList<Byte> invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ArrayList<Byte>>() {
+		for(ByteBuffer invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ByteBuffer>() {
 			@Override
-			public boolean test(ArrayList<Byte> t) {
+			public boolean test(ByteBuffer t) {
 				return frequencyTable.get(t)==1;
 			}
 		}).toList()) {
@@ -56,11 +84,12 @@ public class DataBlockService {
 		} else {
 			setMaxBytesUsed(1);
 		}
-		CompressionService.dictionaryLimit = this.maxBytesUsed;
-		for(ArrayList<Byte> invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ArrayList<Byte>>() {
+		CompressionService.setDictionaryLimit((int)Math.pow(255, this.maxBytesUsed));
+		if(verbose) System.out.println("SETTING DELIMITER TO ["+this.maxBytesUsed+":"+CompressionService.dictionaryLimit+"] BYTES WITH THE FREQUENCY TABLE ENTRIES EXCEEDING ["+preLength+"]");
+		for(ByteBuffer invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ByteBuffer>() {
 			@Override
-			public boolean test(ArrayList<Byte> t) {
-				return t.size()<=(maxBytesUsed+1);
+			public boolean test(ByteBuffer t) {
+				return t.limit()<=(maxBytesUsed+1);
 			}
 		}).toList()) {
 			frequencyTable.remove(invalidKeys);
@@ -69,27 +98,31 @@ public class DataBlockService {
 		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING BLOCKS LARGER THAN DICTIONARY LIMIT");
 		return blockOptimization(frequencyTable);
 	}
-	public ArrayList<Byte> findByteBlock(ArrayList<Byte> byteArr, HashMap<ArrayList<Byte>, Integer> frequencyTable, int startIndx) {
-		Set<ArrayList<Byte>> repeatingBlocks = frequencyTable.keySet();
-		ArrayList<Byte> dataBlock = new ArrayList<>();
-		dataBlock.add(byteArr.get(startIndx));
-		int byteArrSize = byteArr.size();
+	public ByteBuffer findByteBlock(byte[] byteArr, HashMap<ByteBuffer, Integer> frequencyTable, int startIndx) {
+		Set<ByteBuffer> repeatingBlocks = frequencyTable.keySet();
+		byte[] start_byteArr = new byte[1];
+		start_byteArr[0] = byteArr[0];
+		ByteBuffer dataBlock = ByteBuffer.wrap(start_byteArr);
+		int byteArrSize = byteArr.length;
 		for(int i=startIndx+1;i<byteArrSize;i++) {
 			if(repeatingBlocks.contains(dataBlock)) {
 				frequencyTable.put(dataBlock, frequencyTable.getOrDefault(dataBlock, 0)+1);
-				dataBlock.add(byteArr.get(i));
+				start_byteArr = dataBlock.array();
+				dataBlock = ByteBuffer.allocate(i-startIndx+1);
+				dataBlock.put(0, start_byteArr);
+				dataBlock.position(1);
 				continue;
 			}
 			break;
 		}
 		return dataBlock;
 	}
-	private HashMap<ArrayList<Byte>, Integer> blockOptimization(HashMap<ArrayList<Byte>, Integer> frequencyTable) {
-		ArrayList<ArrayList<Byte>> sortedBytes = new ArrayList<>(frequencyTable.keySet());
-		sortedBytes.sort(new Comparator<ArrayList<Byte>>() {
+	private HashMap<ByteBuffer, Integer> blockOptimization(HashMap<ByteBuffer, Integer> frequencyTable) {
+		ArrayList<ByteBuffer> sortedBytes = new ArrayList<>(frequencyTable.keySet());
+		sortedBytes.sort(new Comparator<ByteBuffer>() {
 			@Override
-			public int compare(ArrayList<Byte> o1, ArrayList<Byte> o2) {
-				if(o1.size()!=o2.size()) return o1.size()-o2.size();
+			public int compare(ByteBuffer o1, ByteBuffer o2) {
+				if(o1.limit()!=o2.limit()) return o1.limit()-o2.limit();
 				return frequencyTable.get(o1).intValue()-frequencyTable.get(o2).intValue();
 			}
 		});
