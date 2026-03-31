@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -45,6 +46,10 @@ public class FileCompressionTest {
 		System.gc();
 	}
 	@Test
+	public void test1() {
+		
+	}
+//	@Test
 	public void testField() throws IOException {
 		byte[] byteArr = new byte[10];
 		for(int i=0;i<10;i++) {
@@ -56,6 +61,7 @@ public class FileCompressionTest {
 			byteArr2[i] = (byte) 0x2;
 		}
 		ByteBuffer buff2 = buff.slice(1,3);
+		System.out.println(buff+" "+buff2);
 		for(byte b : buff.array()) {
 			System.out.print(b+" ");
 		}System.out.println();
@@ -75,7 +81,7 @@ public class FileCompressionTest {
 		byteArr = buff.array();
 		System.out.println(byteArr.length);
 	}
-//	@Test
+	@Test
 	public void testHexArrGen() throws IOException {
 		new Thread(new GcRunner()).start();
 		System.out.println(inputFile.getTotalSpace());
@@ -84,16 +90,23 @@ public class FileCompressionTest {
 		testFrequencyTable(byteArr);
 	}
 	public void testFrequencyTable(byte[] byteArr) throws IOException {
-		HashMap<ByteBuffer, Integer> frequencyTable = this.dataBlockService.findRepetitiveBytes(ByteBuffer.wrap(byteArr).slice(0,10000).array());
+		HashMap<ByteBuffer, Integer> frequencyTable = this.dataBlockService.findRepetitiveBytes(Arrays.copyOfRange(byteArr, 0, 1000000));
 		System.out.println("FREQUENCT TABLE GENERATED");
 		testCompressionWithoutBinaryTree(frequencyTable, byteArr);
 	}
 	public void testCompressionWithoutBinaryTree(HashMap<ByteBuffer, Integer> frequencyTable, byte[] byteArr) throws IOException {
 		this.compressionService.generateSortedBytesFromFrequency(frequencyTable);
 		System.out.println("GENERATED SORTED HEX");
-		ByteBuffer compressedData = this.compressionService.startCompression(byteArr);
+		ByteBuffer compressedData = this.compressionService.startCompression(Arrays.copyOfRange(byteArr, 0, 1000000));
 		System.out.println("DATA COMPRESSED");
 		this.fileHandlerService.writeFileByte(compressedData, outputFile);
 		System.out.println("DATA WRITTEN");
-	}	
+		decompressData(compressedData.array(), byteArr);
+	}
+	public void decompressData(byte[] compressedData, byte[] byteArr) {
+		System.out.println("DECOMPRESSING");
+		ByteBuffer decompressedData =this.compressionService.startDecompression(compressedData);
+		System.out.println("DECOMPRESSED");
+		System.out.println("SUCCESFUL : "+decompressedData.array().equals(byteArr));
+	}
 }

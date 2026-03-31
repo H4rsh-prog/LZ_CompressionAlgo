@@ -25,7 +25,7 @@ public class DataBlockService {
 		HashSet<Byte> potentialBlockStart = new HashSet<>();
 		int byteArrSize = byteArr.length;
 		int i;
-		for(i=0;i<100000;i++) {
+		for(i=0;i<100000 && i<byteArrSize;i++) {
 			if(verbose) System.out.print("FINDING REPETITION PROGRESS : ["+i+"/"+byteArrSize+"]\r");
 			if(potentialBlockStart.contains(byteArr[i])) {
 				ByteBuffer dataBlock = findByteBlock(byteArr, temp_frequencyTable, i);
@@ -69,7 +69,7 @@ public class DataBlockService {
 			frequencyTable.remove(invalidKeys);
 		}
 		int postLength = frequencyTable.size();
-		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING NON REPEATING BLOCKS");
+		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING NON REPEATING BLOCKS NOW WITH REMAINING ENTRIES : "+frequencyTable.size());
 		preLength = postLength;
 		if(preLength>255) {
 			if(preLength>Math.pow(2, 16)) {
@@ -95,7 +95,7 @@ public class DataBlockService {
 			frequencyTable.remove(invalidKeys);
 		}
 		postLength = frequencyTable.size();
-		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING BLOCKS LARGER THAN DICTIONARY LIMIT");
+		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING BLOCKS LARGER THAN DICTIONARY LIMIT NOW REMAINING ENTRIES : "+frequencyTable.size());
 		return blockOptimization(frequencyTable);
 	}
 	public ByteBuffer findByteBlock(byte[] byteArr, HashMap<ByteBuffer, Integer> frequencyTable, int startIndx) {
@@ -110,7 +110,8 @@ public class DataBlockService {
 				start_byteArr = dataBlock.array();
 				dataBlock = ByteBuffer.allocate(i-startIndx+1);
 				dataBlock.put(0, start_byteArr);
-				dataBlock.position(1);
+				dataBlock.put(i-startIndx, byteArr[i]);
+				dataBlock.position(0);
 				continue;
 			}
 			break;
@@ -126,12 +127,12 @@ public class DataBlockService {
 				return frequencyTable.get(o1).intValue()-frequencyTable.get(o2).intValue();
 			}
 		});
-		int byteCount = sortedBytes.size();
-		CompressionService.dictionaryLimit = 254;
-		for(int i=0;i<byteCount;i++) {
-			if(i>255) continue;
-			frequencyTable.remove(sortedBytes.get(i));
-		}
+//		int byteCount = sortedBytes.size();
+//		CompressionService.dictionaryLimit = 254;
+//		for(int i=0;i<byteCount;i++) {
+//			if(i>255) continue;
+//			frequencyTable.remove(sortedBytes.get(i));
+//		}
 		return frequencyTable;
 	}	
 }
