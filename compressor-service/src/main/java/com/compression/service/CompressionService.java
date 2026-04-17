@@ -3,13 +3,12 @@ package com.compression.service;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
 
 import org.springframework.stereotype.Service;
+
+import com.compression.model.ByteArrayWrapper;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -17,24 +16,24 @@ import lombok.Setter;
 
 @Service
 public class CompressionService {
-	private HashMap<ByteBuffer, Integer> byteMapping = new HashMap<>();
-	@Getter @Setter private ArrayList<ByteBuffer> sortedBytes = new ArrayList<>();
+	private HashMap<ByteArrayWrapper, Integer> byteMapping = new HashMap<>();
+	@Getter @Setter private ArrayList<ByteArrayWrapper> sortedBytes = new ArrayList<>();
 	@Setter private boolean verbose = false;
 	@Setter static int dictionaryLimit = 254;
-	@Getter private HashMap<Integer, ByteBuffer> cache_intToByteArr = new HashMap<>();
-	@Getter private HashMap<ByteBuffer, Integer> cache_byteArrToInt = new HashMap<>();
+	@Getter private HashMap<Integer, ByteArrayWrapper> cache_intToByteArr = new HashMap<>();
+	@Getter private HashMap<ByteArrayWrapper, Integer> cache_byteArrToInt = new HashMap<>();
 	
-	public void generateSortedBytesFromFrequency(HashMap<ByteBuffer, Integer> frequencyTable) {
+	public void generateSortedBytesFromFrequency(HashMap<ByteArrayWrapper, Integer> frequencyTable) {
 		this.byteMapping = frequencyTable;
 		this.sortedBytes.addAll(this.byteMapping.keySet());
-		this.sortedBytes.sort(new Comparator<ByteBuffer>() {
+		this.sortedBytes.sort(new Comparator<ByteArrayWrapper>() {
 			@Override
-			public int compare(ByteBuffer o1, ByteBuffer o2) {
-				if(o1.limit()!=o2.limit()) return o1.limit()-o2.limit();
-				return frequencyTable.get(o1).intValue()-frequencyTable.get(o2).intValue();
+			public int compare(ByteArrayWrapper o1, ByteArrayWrapper o2) {
+				if(o2.getData().length!=o1.getData().length) return o2.getData().length-o1.getData().length;
+				return frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue();
 			}
 		});
-		this.sortedBytes = new ArrayList<>(this.sortedBytes.subList(0, Math.min(dictionaryLimit, this.sortedBytes.size())));
+		this.sortedBytes = new ArrayList<>(this.sortedBytes.subList(0, Math.min(dictionaryLimit, this.sortedBytes.size())));	//LIMIT ENTRIES
 	}
 	public ByteBuffer startCompression(byte[] prmv_byteArr) {
 		ByteBuffer byteArr = ByteBuffer.wrap(prmv_byteArr);
@@ -44,31 +43,32 @@ public class CompressionService {
 		for(int i=0;i<sortedBytesSize;i++) {
 			if(verbose) System.out.println("COMPRESSING BYTES ["+i+"/"+sortedBytesSize+"]");
 //			System.out.println("query = "+printBufferByte(sortedBytes.get(i))+" ; freq = "+byteMapping.get(sortedBytes.get(i)));
-			byteArr = findAndReplace(byteArr, sortedBytes.get(i), i, new StringBuffer("WORKING ON BYTE SEQUENCE ["+i+"/"+sortedBytesSize+"] :- "));
+			byteArr = findAndReplace(byteArr, sortedBytes.get(i).getData(), i, new StringBuffer("WORKING ON BYTE SEQUENCE ["+i+"/"+sortedBytesSize+"] :- "));
 		}
 		if(verbose) System.out.println("STRING COMPRESSESD TO LENGTH : "+byteArr.limit());
 		if(verbose) System.out.println("``````````````````````````COMPRESSION FUNCTION - END");
 		return byteArr;
 	}
-	private ByteBuffer findAndReplace(ByteBuffer searchParam, ByteBuffer query, int byteVal, StringBuffer padding) {
+	private ByteBuffer findAndReplace(ByteBuffer searchParam, byte[] query, int byteVal, StringBuffer padding) {
 		int searchParamSize = searchParam.limit();
-		int querySize = query.limit();
+		int querySize = query.length;
 		byte[] leftArr;
 		byte[] rightArr;
-		ByteBuffer parsedBytes = intToByteArr(byteVal);
-		int byteSize = parsedBytes.limit();
+		ByteArrayWrapper parsedBytes = intToByteArr(byteVal);
+		int byteSize = parsedBytes.getData().length;
 		ByteBuffer midBuffer = ByteBuffer.allocate(byteSize+2);
 		midBuffer.put(0, (byte) 127);
-		midBuffer.put(1, parsedBytes.array());
+		midBuffer.put(1, parsedBytes.getData());
 		midBuffer.put(byteSize+1, (byte) 127);
+		midBuffer.rewind();
 		byte[] midArr = midBuffer.array();
 		for(int i=0;i<searchParamSize;i++) {
-			if(searchParam.get(i)==query.get(0)) {
+			if(searchParam.get(i)==query[0]) {
 				if(i+querySize-1>=searchParamSize) return searchParam;
 				int j;
 				for(j=1;j<querySize;j++) {
 //					System.out.println("finding "+query.get(j)+", next element is "+searchParam.get(i+j)+" at i = "+i+j);
-					if(searchParam.get(i+j)==query.get(j)) {
+					if(searchParam.get(i+j)==query[j]) {
 						continue;
 					}
 					break;
@@ -89,7 +89,7 @@ public class CompressionService {
 		}
 		return searchParam;
 	}
-	private ByteBuffer intToByteArr(int intVal) {
+	private ByteArrayWrapper intToByteArr(int intVal) {
 		if(this.cache_intToByteArr.containsKey(intVal)) return this.cache_intToByteArr.get(intVal);
 		String byteString = Integer.toBinaryString(intVal | Integer.MAX_VALUE+1);
 		ByteBuffer byteArr = ByteBuffer.allocate(0);
@@ -125,8 +125,9 @@ public class CompressionService {
 			byteArr = ByteBuffer.allocate(1);
 			byteArr.put(0,(byte)0x0);
 		}
-		this.cache_intToByteArr.put(intVal, byteArr);
-		return byteArr;
+		ByteArrayWrapper wrappedArr = new ByteArrayWrapper(byteArr);
+		this.cache_intToByteArr.put(intVal, wrappedArr);
+		return wrappedArr;
 	}
 	public String printBuffer(ByteBuffer buff) {
 		StringBuffer sb = new StringBuffer();
@@ -159,11 +160,19 @@ public class CompressionService {
 				int j = 1;
 				while(byteArr.get(i+j) != (byte) 127) {
 					j++;
+					if(i+j>=byteArrSize) {
+						break;
+					}
 				}
-				ByteBuffer compressedBytes = ByteBuffer.wrap(Arrays.copyOfRange(byteArr.array() ,i+1, i+j));
+				if(i+j>=byteArrSize) {
+					break;
+				}
+				ByteArrayWrapper compressedBytes = new ByteArrayWrapper(Arrays.copyOfRange(byteArr.array() ,i+1, i+j));
 				rightArr = Arrays.copyOfRange(byteArr.array(), i+j+1, byteArr.limit());
 				leftArr = Arrays.copyOfRange(byteArr.array(), 0, i);
-				midArr = this.sortedBytes.get(byteArrToInt(compressedBytes)).array();
+				int parsedInt = byteArrToInt(compressedBytes);
+				if(parsedInt>=sortedBytes.size() || parsedInt<0) {continue;}
+				midArr = this.sortedBytes.get(parsedInt).getData();
 				byteArr = ByteBuffer.allocate(leftArr.length+midArr.length+rightArr.length);
 				byteArr.put(0, leftArr);
 				byteArr.put(leftArr.length, midArr);
@@ -177,12 +186,11 @@ public class CompressionService {
 		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION");
 		return byteArr;
 	}
-	private int byteArrToInt(ByteBuffer byteArr) {
-		System.out.println(printBuffer(byteArr));
+	private int byteArrToInt(ByteArrayWrapper byteArr) {
 		if(this.cache_byteArrToInt.containsKey(byteArr)) return this.cache_byteArrToInt.get(byteArr);
 		int intVal = 0;
 		String byteString = "";
-		for(byte b : byteArr.array()) {
+		for(byte b : byteArr.getData()) {
 			byteString = Integer.toBinaryString(b | 256).substring(1) + byteString;
 		}
 		System.out.println(byteString);

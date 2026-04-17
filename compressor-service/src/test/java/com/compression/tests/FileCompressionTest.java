@@ -5,22 +5,26 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import com.compression.model.ByteArrayWrapper;
 import com.compression.service.CompressionService;
-import com.compression.service.DataBlockService;
+import com.compression.service.DictionaryService;
 import com.compression.service.FileHandlingService;
 
 
 public class FileCompressionTest {
 	protected File inputFile;
 	protected File outputFile;
-	protected DataBlockService dataBlockService;
+	protected DictionaryService dataBlockService;
 	protected CompressionService compressionService;
 	protected FileHandlingService fileHandlerService;
 	
@@ -28,7 +32,7 @@ public class FileCompressionTest {
 	public void setUp() {
 		this.inputFile = new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\input");
 		this.outputFile = new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\output");
-		this.dataBlockService = new DataBlockService();
+		this.dataBlockService = new DictionaryService();
 		this.compressionService = new CompressionService();
 		this.fileHandlerService = new FileHandlingService();
 		
@@ -82,22 +86,22 @@ public class FileCompressionTest {
 		System.out.println(byteArr.length);
 	}
 	@Test
-	public void testHexArrGen() throws IOException {
+	public void testByteArrGen() throws IOException {
 		new Thread(new GcRunner()).start();
 		System.out.println(inputFile.getTotalSpace());
 		byte[] byteArr = this.fileHandlerService.readFileByte(inputFile);
-		System.out.println("HEX GENERATED");
-		testFrequencyTable(byteArr);
+		System.out.println("BYTES GENERATED");
+		testDictionary(byteArr);
 	}
-	public void testFrequencyTable(byte[] byteArr) throws IOException {
-		HashMap<ByteBuffer, Integer> frequencyTable = this.dataBlockService.findRepetitiveBytes(Arrays.copyOfRange(byteArr, 0, 1000000));
+	public void testDictionary(byte[] byteArr) throws IOException {
+		HashMap<ByteArrayWrapper, Integer> frequencyTable = this.dataBlockService.findRepetitiveBytes(byteArr);
 		System.out.println("FREQUENCT TABLE GENERATED");
 		testCompressionWithoutBinaryTree(frequencyTable, byteArr);
 	}
-	public void testCompressionWithoutBinaryTree(HashMap<ByteBuffer, Integer> frequencyTable, byte[] byteArr) throws IOException {
+	public void testCompressionWithoutBinaryTree(HashMap<ByteArrayWrapper, Integer> frequencyTable, byte[] byteArr) throws IOException {
 		this.compressionService.generateSortedBytesFromFrequency(frequencyTable);
 		System.out.println("GENERATED SORTED HEX");
-		ByteBuffer compressedData = this.compressionService.startCompression(Arrays.copyOfRange(byteArr, 0, 1000000));
+		ByteBuffer compressedData = this.compressionService.startCompression(byteArr);
 		System.out.println("DATA COMPRESSED");
 		this.fileHandlerService.writeFileByte(compressedData, outputFile);
 		System.out.println("DATA WRITTEN");
