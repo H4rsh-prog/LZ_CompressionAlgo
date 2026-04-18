@@ -30,4 +30,32 @@ public class ByteArrayWrapper {
         ByteArrayWrapper other = (ByteArrayWrapper) obj;
         return Arrays.equals(data, other.data);
     }
+    @Override
+	public String toString() {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("[ ");
+    	for(byte b : data) {
+    		sb.append(b+" ");
+    	}
+    	sb.append("]");
+    	return sb.toString();
+    }
+    public static String toString(byte[] data) {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("[ ");
+    	for(byte b : data) {
+    		sb.append(b+" ");
+    	}
+    	sb.append("]");
+    	return sb.toString();
+    }
+    public static String toString(ByteBuffer data) {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("[ ");
+    	for(byte b : data.array()) {
+    		sb.append(b+" ");
+    	}
+    	sb.append("]");
+    	return sb.toString();
+    }
 }

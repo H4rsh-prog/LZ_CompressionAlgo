@@ -16,6 +16,9 @@ import lombok.Setter;
 
 @Service
 public class CompressionService {
+	final byte MARKER = (byte) 0x7F;
+	final byte ESCAPE = (byte) 0x7E;
+
 	private HashMap<ByteArrayWrapper, Integer> byteMapping = new HashMap<>();
 	@Getter @Setter private ArrayList<ByteArrayWrapper> sortedBytes = new ArrayList<>();
 	@Setter private boolean verbose = false;
@@ -42,7 +45,6 @@ public class CompressionService {
 		int sortedBytesSize = this.sortedBytes.size();
 		for(int i=0;i<sortedBytesSize;i++) {
 			if(verbose) System.out.println("COMPRESSING BYTES ["+i+"/"+sortedBytesSize+"]");
-//			System.out.println("query = "+printBufferByte(sortedBytes.get(i))+" ; freq = "+byteMapping.get(sortedBytes.get(i)));
 			byteArr = findAndReplace(byteArr, sortedBytes.get(i).getData(), i, new StringBuffer("WORKING ON BYTE SEQUENCE ["+i+"/"+sortedBytesSize+"] :- "));
 		}
 		if(verbose) System.out.println("STRING COMPRESSESD TO LENGTH : "+byteArr.limit());
@@ -56,10 +58,11 @@ public class CompressionService {
 		byte[] rightArr;
 		ByteArrayWrapper parsedBytes = intToByteArr(byteVal);
 		int byteSize = parsedBytes.getData().length;
-		ByteBuffer midBuffer = ByteBuffer.allocate(byteSize+2);
-		midBuffer.put(0, (byte) 127);
-		midBuffer.put(1, parsedBytes.getData());
-		midBuffer.put(byteSize+1, (byte) 127);
+		ByteBuffer midBuffer = ByteBuffer.allocate(byteSize+3);
+		midBuffer.put(0, MARKER);
+		midBuffer.put(1, ESCAPE);
+		midBuffer.put(2, parsedBytes.getData());
+		midBuffer.put(byteSize+2, MARKER);
 		midBuffer.rewind();
 		byte[] midArr = midBuffer.array();
 		for(int i=0;i<searchParamSize;i++) {
@@ -67,7 +70,6 @@ public class CompressionService {
 				if(i+querySize-1>=searchParamSize) return searchParam;
 				int j;
 				for(j=1;j<querySize;j++) {
-//					System.out.println("finding "+query.get(j)+", next element is "+searchParam.get(i+j)+" at i = "+i+j);
 					if(searchParam.get(i+j)==query[j]) {
 						continue;
 					}
@@ -75,15 +77,16 @@ public class CompressionService {
 				}
 				if(j==querySize) {
 					leftArr = Arrays.copyOfRange(searchParam.array(), 0, i);
-					rightArr = Arrays.copyOfRange(searchParam.array(),i+querySize, searchParam.limit());
-					searchParam = ByteBuffer.allocate(leftArr.length+midArr.length+rightArr.length);
+					rightArr = Arrays.copyOfRange(searchParam.array(),i+querySize, searchParamSize);
+					byte[] old_bytes = Arrays.copyOfRange(searchParam.array(), i, i+querySize);
+					searchParam = ByteBuffer.allocate(searchParamSize+((byteSize+3)-querySize));	// 3 PADDING BYTES [2: MARKER ; 1:ESCAPE]
 					searchParam.put(0, leftArr);
-					searchParam.put(leftArr.length, midArr);
-					searchParam.put(leftArr.length+midArr.length, rightArr);
-					searchParam.position(0);
-					searchParamSize += (byteSize-querySize+2);
-					i += (byteSize+1);
-					if(verbose) System.out.println(padding.toString()+"CRUNCHED UP ["+querySize+"] BYTES INTO ["+midArr.length+"] BYTES AT INDEX ["+i+"] ; UPDATED DIGEST SIZE = ["+searchParam.limit()+"]");
+					searchParam.put(i, midArr);
+					searchParam.put(i+midArr.length, rightArr);
+					searchParam.rewind();
+					searchParamSize = searchParam.limit();
+					i += (byteSize+3);	// 3 PADDING BYTES [2: MARKER ; 1:ESCAPE]
+					if(verbose) System.out.println(padding.toString()+"CRUNCHED UP ["+querySize+"] BYTES INTO ["+midArr.length+"] BYTES AT INDEX ["+i+"] ; UPDATED DIGEST SIZE = ["+searchParam.limit()+"] ; PREVIOUS BYTE STRING : "+ByteArrayWrapper.toString(old_bytes)+" ; COMPRESSED BYTE STRING : "+ByteArrayWrapper.toString(midArr));					
 				}
 			}
 		}
@@ -151,35 +154,49 @@ public class CompressionService {
 		ByteBuffer byteArr = ByteBuffer.wrap(prmv_byteArr);
 		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION - START");
 		if(verbose) System.out.println("STARTING WITH STRING LENGTH : "+byteArr.limit());
-		int byteArrSize = byteArr.limit();
+		int byteArrSize = prmv_byteArr.length;
 		byte[] leftArr;
 		byte[] rightArr;
 		byte[] midArr;
-		for(int i=0;i<byteArrSize;i++) {
-			if(byteArr.get(i) == (byte) 127) {
-				int j = 1;
-				while(byteArr.get(i+j) != (byte) 127) {
+		for(int i=0;i<byteArrSize-2;i++) {
+			if(byteArr.get(i) == MARKER && byteArr.get(i+1) == ESCAPE) {
+				int j = 2;	// PADDING FOR ONE MARKER + ONE ESCAPE
+				while(byteArr.get(i+j) != MARKER) {
 					j++;
-					if(i+j>=byteArrSize) {
-						break;
-					}
 				}
-				if(i+j>=byteArrSize) {
-					break;
-				}
-				ByteArrayWrapper compressedBytes = new ByteArrayWrapper(Arrays.copyOfRange(byteArr.array() ,i+1, i+j));
-				rightArr = Arrays.copyOfRange(byteArr.array(), i+j+1, byteArr.limit());
+				ByteArrayWrapper compressedBytes = new ByteArrayWrapper(Arrays.copyOfRange(byteArr.array() ,i+2, i+j)); // i+2 PADDING FOR ONE MARKER + ONE ESCAPE
+				rightArr = Arrays.copyOfRange(byteArr.array(), i+j+1, byteArrSize);	//i+j+1 PADDING FOR ONE END MARKER
 				leftArr = Arrays.copyOfRange(byteArr.array(), 0, i);
 				int parsedInt = byteArrToInt(compressedBytes);
 				if(parsedInt>=sortedBytes.size() || parsedInt<0) {continue;}
+				
+				//BREAK AND CHECK
+
+//				System.out.println("traversing "+compressedBytes.toString());
+//				for(j=i-2;j<i+(compressedBytes.getData().length+3)+2;j++) {
+//					System.out.println(byteArr.get(j));
+//				}
+				
+				
 				midArr = this.sortedBytes.get(parsedInt).getData();
 				byteArr = ByteBuffer.allocate(leftArr.length+midArr.length+rightArr.length);
 				byteArr.put(0, leftArr);
-				byteArr.put(leftArr.length, midArr);
-				byteArr.put(leftArr.length+midArr.length, rightArr);
-				byteArr.position(0);
-				byteArrSize += midArr.length-(j+1);
-				i += midArr.length-1;
+				byteArr.put(i, midArr);
+				byteArr.put(i+midArr.length, rightArr);
+				byteArr.rewind();
+				byteArrSize = byteArr.limit();
+				
+
+				//BREAK AND CHECK
+				
+//				System.out.println("decompressed to "+ByteArrayWrapper.toString(midArr));
+//				for(j=i-2;j<i+(midArr.length)+2;j++) {
+//					System.out.println(byteArr.get(j));
+//				}
+				
+				
+				if(verbose) System.out.println("DECOMPRESSED BYTES [ 127 126 "+compressedBytes.toString()+" 127 ] INTO "+ByteArrayWrapper.toString(midArr)+" AT INDEX ["+i+"] ; DIGEST SIZE EXPANDED [ "+(compressedBytes.getData().length+3)+" -> "+midArr.length+" ] ;  UPDATED DIGEST SIZE = ["+byteArr.limit()+"]");
+				i += (midArr.length-(compressedBytes.getData().length+2));	// 2 PADDING BYTES [1: ENDMARKER ; 1:ESCAPE] BECAUSE i SITTING ON STARTMARKER
 			}
 		}
 		if(verbose) System.out.println("STRING DECOMPRESSESD TO LENGTH : "+byteArr.limit());
@@ -193,29 +210,15 @@ public class CompressionService {
 		for(byte b : byteArr.getData()) {
 			byteString = Integer.toBinaryString(b | 256).substring(1) + byteString;
 		}
-		System.out.println(byteString);
+		if(byteString=="") return -1;
 		char[] binArr = byteString.toCharArray();
 		for(int i=binArr.length-1,k=0;i>-1;i--,k++) {
 			if(binArr[i]=='1') {
 				intVal += (int) Math.pow(2, k);
 			}
 		}
-		System.out.println(intVal);
+		if(verbose) System.out.println(byteString+" -> "+intVal);
 		this.cache_byteArrToInt.put(byteArr, intVal);
 		return intVal;
 	}
-//	private void genReverseCacheFromInt(HashMap<Integer, ArrayList<Byte>> cache_intToByteArr) {
-//		this.cache_intToByteArr = cache_intToByteArr;
-//		this.cache_byteArrToInt.clear();
-//		for(Entry<Integer, ArrayList<Byte>> e : cache_intToByteArr.entrySet()) {
-//			this.cache_byteArrToInt.put(e.getValue(), e.getKey());
-//		}
-//	}
-//	private void genReverseCachefromByte(HashMap<ArrayList<Byte>, Integer> cache_byteArrToInt) {
-//		this.cache_byteArrToInt = cache_byteArrToInt;
-//		this.cache_intToByteArr.clear();
-//		for(Entry<ArrayList<Byte>, Integer> e : cache_byteArrToInt.entrySet()) {
-//			this.cache_intToByteArr.put(e.getValue(), e.getKey());
-//		}
-//	}
 }
