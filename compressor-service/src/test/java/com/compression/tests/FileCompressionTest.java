@@ -3,13 +3,8 @@ package com.compression.tests;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,42 +43,6 @@ public class FileCompressionTest {
 		this.compressionService = null;
 		this.fileHandlerService = null;
 		System.gc();
-	}
-	@Test
-	public void test1() {
-		
-	}
-//	@Test
-	public void testField() throws IOException {
-		byte[] byteArr = new byte[10];
-		for(int i=0;i<10;i++) {
-			byteArr[i] = (byte) 0x1;
-		}
-		ByteBuffer buff =ByteBuffer.wrap(byteArr);
-		byte[] byteArr2 = new byte[10];
-		for(int i=0;i<10;i++) {
-			byteArr2[i] = (byte) 0x2;
-		}
-		ByteBuffer buff2 = buff.slice(1,3);
-		System.out.println(buff+" "+buff2);
-		for(byte b : buff.array()) {
-			System.out.print(b+" ");
-		}System.out.println();
-		for(byte b : buff2.array()) {
-			System.out.print(b+" ");
-		}System.out.println();
-		buff = ByteBuffer.allocate(11);
-		System.out.println(buff);
-		for(byte b : buff.array()) {
-			System.out.print(b+" ");
-		}System.out.println();
-		buff.put(1, byteArr);
-		System.out.println(buff);
-		for(byte b : buff.array()) {
-			System.out.print(b+" ");
-		}System.out.println();
-		byteArr = buff.array();
-		System.out.println(byteArr.length);
 	}
 	@Test
 	public void testByteArrGen() throws IOException {
