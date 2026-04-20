@@ -58,11 +58,12 @@ public class CompressionService {
 		byte[] rightArr;
 		ByteArrayWrapper parsedBytes = intToByteArr(byteVal);
 		int byteSize = parsedBytes.getData().length;
-		ByteBuffer midBuffer = ByteBuffer.allocate(byteSize+3);
+		ByteBuffer midBuffer = ByteBuffer.allocate(byteSize+4);
 		midBuffer.put(0, MARKER);
 		midBuffer.put(1, ESCAPE);
 		midBuffer.put(2, parsedBytes.getData());
-		midBuffer.put(byteSize+2, MARKER);
+		midBuffer.put(byteSize+2, ESCAPE);
+		midBuffer.put(byteSize+3, MARKER);
 		midBuffer.rewind();
 		byte[] midArr = midBuffer.array();
 		for(int i=0;i<searchParamSize;i++) {
@@ -79,13 +80,13 @@ public class CompressionService {
 					leftArr = Arrays.copyOfRange(searchParam.array(), 0, i);
 					rightArr = Arrays.copyOfRange(searchParam.array(),i+querySize, searchParamSize);
 					byte[] old_bytes = Arrays.copyOfRange(searchParam.array(), i, i+querySize);
-					searchParam = ByteBuffer.allocate(searchParamSize+((byteSize+3)-querySize));	// 3 PADDING BYTES [2: MARKER ; 1:ESCAPE]
+					searchParam = ByteBuffer.allocate(searchParamSize+((byteSize+4)-querySize));	// 3 PADDING BYTES [2: MARKER ; 2:ESCAPE]
 					searchParam.put(0, leftArr);
 					searchParam.put(i, midArr);
 					searchParam.put(i+midArr.length, rightArr);
 					searchParam.rewind();
 					searchParamSize = searchParam.limit();
-					i += (byteSize+3);	// 3 PADDING BYTES [2: MARKER ; 1:ESCAPE]
+					i += (byteSize+3);	// 3 PADDING BYTES [2: MARKER ; 2:ESCAPE]
 					if(verbose) System.out.println(padding.toString()+"CRUNCHED UP ["+querySize+"] BYTES INTO ["+midArr.length+"] BYTES AT INDEX ["+i+"] ; UPDATED DIGEST SIZE = ["+searchParam.limit()+"] ; PREVIOUS BYTE STRING : "+ByteArrayWrapper.toString(old_bytes)+" ; COMPRESSED BYTE STRING : "+ByteArrayWrapper.toString(midArr));					
 				}
 			}
@@ -161,23 +162,14 @@ public class CompressionService {
 		for(int i=0;i<byteArrSize-2;i++) {
 			if(byteArr.get(i) == MARKER && byteArr.get(i+1) == ESCAPE) {
 				int j = 2;	// PADDING FOR ONE MARKER + ONE ESCAPE
-				while(byteArr.get(i+j) != MARKER) {
+				while(byteArr.get(i+j) != ESCAPE && byteArr.get(i+j+1) != MARKER) {
 					j++;
 				}
 				ByteArrayWrapper compressedBytes = new ByteArrayWrapper(Arrays.copyOfRange(byteArr.array() ,i+2, i+j)); // i+2 PADDING FOR ONE MARKER + ONE ESCAPE
-				rightArr = Arrays.copyOfRange(byteArr.array(), i+j+1, byteArrSize);	//i+j+1 PADDING FOR ONE END MARKER
+				rightArr = Arrays.copyOfRange(byteArr.array(), i+j+2, byteArrSize);	//i+j+2 PADDING FOR ONE END MARKER AND ONE ESCAPE
 				leftArr = Arrays.copyOfRange(byteArr.array(), 0, i);
 				int parsedInt = byteArrToInt(compressedBytes);
 				if(parsedInt>=sortedBytes.size() || parsedInt<0) {continue;}
-				
-				//BREAK AND CHECK
-
-//				System.out.println("traversing "+compressedBytes.toString());
-//				for(j=i-2;j<i+(compressedBytes.getData().length+3)+2;j++) {
-//					System.out.println(byteArr.get(j));
-//				}
-				
-				
 				midArr = this.sortedBytes.get(parsedInt).getData();
 				byteArr = ByteBuffer.allocate(leftArr.length+midArr.length+rightArr.length);
 				byteArr.put(0, leftArr);
@@ -185,18 +177,8 @@ public class CompressionService {
 				byteArr.put(i+midArr.length, rightArr);
 				byteArr.rewind();
 				byteArrSize = byteArr.limit();
-				
-
-				//BREAK AND CHECK
-				
-//				System.out.println("decompressed to "+ByteArrayWrapper.toString(midArr));
-//				for(j=i-2;j<i+(midArr.length)+2;j++) {
-//					System.out.println(byteArr.get(j));
-//				}
-				
-				
-				if(verbose) System.out.println("DECOMPRESSED BYTES [ 127 126 "+compressedBytes.toString()+" 127 ] INTO "+ByteArrayWrapper.toString(midArr)+" AT INDEX ["+i+"] ; DIGEST SIZE EXPANDED [ "+(compressedBytes.getData().length+3)+" -> "+midArr.length+" ] ;  UPDATED DIGEST SIZE = ["+byteArr.limit()+"]");
-				i += (midArr.length-(compressedBytes.getData().length+2));	// 2 PADDING BYTES [1: ENDMARKER ; 1:ESCAPE] BECAUSE i SITTING ON STARTMARKER
+				if(verbose) System.out.println("DECOMPRESSED BYTES [ 127 126 "+compressedBytes.toString()+" 127 ] INTO "+ByteArrayWrapper.toString(midArr)+" AT INDEX ["+i+"] ; DIGEST SIZE EXPANDED [ "+(compressedBytes.getData().length+4)+" -> "+midArr.length+" ] ;  UPDATED DIGEST SIZE = ["+byteArr.limit()+"]");
+				i += (midArr.length-(compressedBytes.getData().length+3));	// 2 PADDING BYTES [1: ENDMARKER ; 2:ESCAPE] BECAUSE i SITTING ON STARTMARKER
 			}
 		}
 		if(verbose) System.out.println("STRING DECOMPRESSESD TO LENGTH : "+byteArr.limit());

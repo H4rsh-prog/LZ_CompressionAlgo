@@ -89,7 +89,7 @@ public class DictionaryService {
 		for(ByteArrayWrapper invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ByteArrayWrapper>() {
 			@Override
 			public boolean test(ByteArrayWrapper t) {
-				return t.getData().length<=(maxBytesUsed+2);
+				return t.getData().length<=(maxBytesUsed+3);
 			}
 		}).toList()) {
 			frequencyTable.remove(invalidKeys);

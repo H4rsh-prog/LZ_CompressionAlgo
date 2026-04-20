@@ -111,6 +111,7 @@ public class FileCompressionTest {
 		System.out.println("DECOMPRESSING");
 		ByteBuffer decompressedData =this.compressionService.startDecompression(compressedData);
 		System.out.println("DECOMPRESSED");
-		System.out.println("SUCCESFUL : "+decompressedData.array().equals(byteArr));
+		ByteArrayWrapper decompressedBytes = new ByteArrayWrapper(decompressedData);
+		System.out.println("SUCCESFUL : "+Arrays.equals(byteArr, decompressedBytes.getData()));
 	}
 }
