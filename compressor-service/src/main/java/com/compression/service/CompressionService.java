@@ -3,7 +3,6 @@ package com.compression.service;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 
 import org.springframework.stereotype.Service;
@@ -19,26 +18,13 @@ public class CompressionService {
 	final byte MARKER = (byte) 0x7F;
 	final byte ESCAPE = (byte) 0x7E;
 
-	private HashMap<ByteArrayWrapper, Integer> byteMapping = new HashMap<>();
 	@Getter @Setter private ArrayList<ByteArrayWrapper> sortedBytes = new ArrayList<>();
 	@Setter private boolean verbose = false;
-	@Setter static int dictionaryLimit = 254;
 	@Getter private HashMap<Integer, ByteArrayWrapper> cache_intToByteArr = new HashMap<>();
 	@Getter private HashMap<ByteArrayWrapper, Integer> cache_byteArrToInt = new HashMap<>();
 	
-	public void generateSortedBytesFromFrequency(HashMap<ByteArrayWrapper, Integer> frequencyTable) {
-		this.byteMapping = frequencyTable;
-		this.sortedBytes.addAll(this.byteMapping.keySet());
-		this.sortedBytes.sort(new Comparator<ByteArrayWrapper>() {
-			@Override
-			public int compare(ByteArrayWrapper o1, ByteArrayWrapper o2) {
-				if(o2.getData().length!=o1.getData().length) return o2.getData().length-o1.getData().length;
-				return frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue();
-			}
-		});
-		this.sortedBytes = new ArrayList<>(this.sortedBytes.subList(0, Math.min(dictionaryLimit, this.sortedBytes.size())));	//LIMIT ENTRIES
-	}
-	public ByteBuffer startCompression(byte[] prmv_byteArr) {
+	public byte[] startCompression(byte[] prmv_byteArr, ArrayList<ByteArrayWrapper> sortedBytes) {
+		this.sortedBytes=sortedBytes;
 		ByteBuffer byteArr = ByteBuffer.wrap(prmv_byteArr);
 		if(verbose) System.out.println("``````````````````````````COMPRESSION FUNCTION - START");
 		if(verbose) System.out.println("STARTING WITH STRING LENGTH : "+byteArr.limit());
@@ -49,7 +35,7 @@ public class CompressionService {
 		}
 		if(verbose) System.out.println("STRING COMPRESSESD TO LENGTH : "+byteArr.limit());
 		if(verbose) System.out.println("``````````````````````````COMPRESSION FUNCTION - END");
-		return byteArr;
+		return byteArr.array();
 	}
 	private ByteBuffer findAndReplace(ByteBuffer searchParam, byte[] query, int byteVal, StringBuffer padding) {
 		int searchParamSize = searchParam.limit();
@@ -93,7 +79,7 @@ public class CompressionService {
 		}
 		return searchParam;
 	}
-	public ByteBuffer startDecompression(byte[] prmv_byteArr) {
+	public byte[] startDecompression(byte[] prmv_byteArr) {
 		ByteBuffer byteArr = ByteBuffer.wrap(prmv_byteArr);
 		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION - START");
 		if(verbose) System.out.println("STARTING WITH STRING LENGTH : "+byteArr.limit());
@@ -126,7 +112,7 @@ public class CompressionService {
 		}
 		if(verbose) System.out.println("STRING DECOMPRESSESD TO LENGTH : "+byteArr.limit());
 		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION");
-		return byteArr;
+		return byteArr.array();
 	}
 	
 	//ESCAPING INDEX BYTES (i.e. MARKER AND ESCAPE) SO THAT THE FUNCTIONS DONT MISREAD INDICES AS END MARKERS

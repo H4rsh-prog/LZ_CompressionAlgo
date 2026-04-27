@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 import org.springframework.stereotype.Service;
 
@@ -21,9 +20,9 @@ public class FileHandlingService {
 		fis.close();
 		return bytes;
 	}
-	public void writeFileByte(ByteBuffer byteArr, File file) throws IOException {
+	public void writeFileByte(byte[] byteArr, File file) throws IOException {
 		FileOutputStream fos = new FileOutputStream(file);
-		fos.write(byteArr.array());
+		fos.write(byteArr);
 		fos.close();
 	}
 }

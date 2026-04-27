@@ -1,6 +1,8 @@
 package com.compression.service;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -18,8 +20,9 @@ public class DictionaryService {
 
 	@Setter private int maxBytesUsed = 1;
 	@Setter private boolean verbose = false;
+	@Setter static int dictionaryLimit = 254;
 	
-	public HashMap<ByteArrayWrapper, Integer> findRepetitiveBytes(byte[] byteArr) {
+	public ArrayList<ByteArrayWrapper> createDictionary(byte[] byteArr) {
 		HashMap<ByteArrayWrapper, Integer> frequencyTable = new HashMap<>();
 		HashMap<ByteArrayWrapper, Integer> temp_frequencyTable = new HashMap<>();
 		HashSet<Byte> potentialBlockStart = new HashSet<>();
@@ -84,8 +87,8 @@ public class DictionaryService {
 		} else {
 			setMaxBytesUsed(1);
 		}
-		CompressionService.setDictionaryLimit((int)Math.pow(255, this.maxBytesUsed));
-		if(verbose) System.out.println("SETTING DELIMITER TO ["+this.maxBytesUsed+":"+CompressionService.dictionaryLimit+"] BYTES WITH THE FREQUENCY TABLE ENTRIES EXCEEDING ["+preLength+"]");
+		setDictionaryLimit((int)Math.pow(255, this.maxBytesUsed));
+		if(verbose) System.out.println("SETTING DELIMITER TO ["+this.maxBytesUsed+":"+dictionaryLimit+"] BYTES WITH THE FREQUENCY TABLE ENTRIES EXCEEDING ["+preLength+"]");
 		for(ByteArrayWrapper invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ByteArrayWrapper>() {
 			@Override
 			public boolean test(ByteArrayWrapper t) {
@@ -96,9 +99,9 @@ public class DictionaryService {
 		}
 		postLength = frequencyTable.size();
 		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING BLOCKS LARGER THAN DICTIONARY LIMIT NOW REMAINING ENTRIES : "+frequencyTable.size());
-		return frequencyTable;
+		return generateSortedBytesFromFrequency(frequencyTable);
 	}
-	public ByteArrayWrapper findByteBlock(byte[] byteArr, HashMap<ByteArrayWrapper, Integer> frequencyTable, int startIndx) {
+	private ByteArrayWrapper findByteBlock(byte[] byteArr, HashMap<ByteArrayWrapper, Integer> frequencyTable, int startIndx) {
 		Set<ByteArrayWrapper> repeatingBlocks = frequencyTable.keySet();
 		byte[] start_byteArr = new byte[1];
 		start_byteArr[0] = byteArr[startIndx];
@@ -118,5 +121,17 @@ public class DictionaryService {
 			break;
 		}
 		return dataBlock;
+	}
+	private ArrayList<ByteArrayWrapper> generateSortedBytesFromFrequency(HashMap<ByteArrayWrapper, Integer> frequencyTable) {
+		ArrayList<ByteArrayWrapper> sortedBytes = new ArrayList<>();
+		sortedBytes.addAll(frequencyTable.keySet());
+		sortedBytes.sort(new Comparator<ByteArrayWrapper>() {
+			@Override
+			public int compare(ByteArrayWrapper o1, ByteArrayWrapper o2) {
+				if(o2.getData().length!=o1.getData().length) return o2.getData().length-o1.getData().length;
+				return frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue();
+			}
+		});
+		return new ArrayList<>(sortedBytes.subList(0, Math.min(dictionaryLimit, sortedBytes.size())));	//LIMIT ENTRIES;
 	}
 }
