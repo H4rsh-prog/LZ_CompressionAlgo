@@ -1,7 +1,9 @@
 package com.compression.service;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.function.Function;
 
@@ -37,8 +39,14 @@ public class DriverService {
 		int itr=1;
 		while(!(compressionRate<threshold)) {
 			System.out.println("compression itr = "+itr);
+			currentBytes = this.compressionHandler.escapeMarkerBytes(new ByteArrayWrapper(currentBytes)).getData();
 			sortedBytes = this.dictionaryHandler.createDictionary(currentBytes);
-			currentBytes = this.compressionHandler.startCompression(currentBytes, sortedBytes);
+			try {
+				currentBytes = this.compressionHandler.startCompression(currentBytes, sortedBytes);
+			} finally {
+				FileOutputStream fos =new FileOutputStream(new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\compressed_phase_"+itr));
+				fos.write(currentBytes);
+			}
 			compressionRate = 100-(((double)currentBytes.length)/byteSize)*100;
 			System.out.println("ITR ["+itr+"] : reductedBytes = ["+(byteSize - currentBytes.length)+"] ; byteSize = [old = ["+byteSize+"] ; new = ["+(currentBytes.length)+"]] ; compressionRate = ["+compressionRate+"]");
 			byteSize = currentBytes.length;
@@ -63,7 +71,13 @@ public class DriverService {
 			System.out.println("decompression itr = "+(i+1));
 			sortedBytes = this.compressionHistory.get(i).getSortedBytes();
 			this.compressionHandler.setSortedBytes(sortedBytes);
-			currentBytes = this.compressionHandler.startDecompression(currentBytes);
+			try {
+				currentBytes = this.compressionHandler.startDecompression(currentBytes);
+			} finally {
+				FileOutputStream fos =new FileOutputStream(new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\decompressed_phase_"+i));
+				fos.write(currentBytes);
+			}
+			currentBytes = this.compressionHandler.unescapeMarkerBytes(new ByteArrayWrapper(currentBytes)).getData();
 		}
 		System.out.println("DECOMPRESSED FILE BACK TO "+currentBytes.length+" BYTES");
 		return currentBytes;

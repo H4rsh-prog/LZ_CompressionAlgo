@@ -42,7 +42,7 @@ public class CompressionService {
 		int querySize = query.length;
 		byte[] leftArr;
 		byte[] rightArr;
-		ByteArrayWrapper parsedBytes = escapeIndexBytes(intToByteArr(byteVal));
+		ByteArrayWrapper parsedBytes = escapeMarkerBytes(intToByteArr(byteVal));
 		int byteSize = parsedBytes.getData().length;
 		ByteBuffer midBuffer = ByteBuffer.allocate(byteSize+4);
 		midBuffer.put(0, MARKER);
@@ -96,7 +96,7 @@ public class CompressionService {
 				ByteArrayWrapper compressedBytes = new ByteArrayWrapper(Arrays.copyOfRange(byteArr.array() ,i+2, i+j)); // i+2 PADDING FOR ONE MARKER + ONE ESCAPE
 				rightArr = Arrays.copyOfRange(byteArr.array(), i+j+2, byteArrSize);	//i+j+2 PADDING FOR ONE END MARKER AND ONE ESCAPE
 				leftArr = Arrays.copyOfRange(byteArr.array(), 0, i);
-				compressedBytes = unescapeIndexBytes(compressedBytes);
+				compressedBytes = unescapeMarkerBytes(compressedBytes);
 				int parsedInt = byteArrToInt(compressedBytes);
 				if(parsedInt>=sortedBytes.size() || parsedInt<0) {continue;}
 				midArr = this.sortedBytes.get(parsedInt).getData();
@@ -115,8 +115,8 @@ public class CompressionService {
 		return byteArr.array();
 	}
 	
-	//ESCAPING INDEX BYTES (i.e. MARKER AND ESCAPE) SO THAT THE FUNCTIONS DONT MISREAD INDICES AS END MARKERS
-	private ByteArrayWrapper escapeIndexBytes(ByteArrayWrapper rawBytes) {
+	//ESCAPING INDEX BYTES (i.e. MARKER AND ESCAPE) SO THAT THE FUNCTIONS DONT MISREAD INDICES AS BYTECODE
+	public ByteArrayWrapper escapeMarkerBytes(ByteArrayWrapper rawBytes) {
 		byte[] rawByteArr = rawBytes.getData();
 		ByteBuffer tempBuffer = ByteBuffer.allocate(rawByteArr.length*2);
 		for(byte b : rawByteArr) {
@@ -134,13 +134,21 @@ public class CompressionService {
 		return rawBytes;
 	}
 	//UNESCAPING ESCAPED INDICES AT DECOMPRESSION TO READ THEM
-	private ByteArrayWrapper unescapeIndexBytes(ByteArrayWrapper rawBytes) {
+	public ByteArrayWrapper unescapeMarkerBytes(ByteArrayWrapper rawBytes) {
 		byte[] rawByteArr = rawBytes.getData();
 		ByteBuffer tempBuffer = ByteBuffer.allocate(rawByteArr.length);
 		for(int i =0;i<rawByteArr.length;i++) {
 			if(rawByteArr[i] == ESCAPE) {
 				i++;
-				tempBuffer.put((rawByteArr[i]==(byte)0x01)?MARKER:ESCAPE);
+				try {
+					tempBuffer.put((rawByteArr[i]==(byte)0x01)?MARKER:ESCAPE);
+				} catch(Exception e) {
+					byte[] temp = new byte[10];
+					tempBuffer.get(i-5, temp, 0, 4);
+					System.err.println("exception at indx "+i+" surrounding bytes = "+(new ByteArrayWrapper(temp)));
+					System.err.println("original bytes = "+new ByteArrayWrapper(rawByteArr));
+					e.printStackTrace();
+				}
 			} else {
 				tempBuffer.put(rawByteArr[i]);
 			}
