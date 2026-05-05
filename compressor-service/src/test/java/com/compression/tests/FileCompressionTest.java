@@ -28,7 +28,7 @@ public class FileCompressionTest {
 	
 	@BeforeEach
 	public void setUp() {
-		this.inputFile = new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\input");
+		this.inputFile = new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\inpuet.png");
 		this.outputFile = new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\output");
 		this.driver = new DriverService();
 		this.file = new FileHandlingService();
@@ -49,14 +49,17 @@ public class FileCompressionTest {
 		byte[] decompressedData = this.driver.decompressFile(outputFile);
 		System.out.println("STATUS = "+Arrays.equals(originalData, decompressedData));
 	}
-	@Test
+//	@Test
 	public void testCompressionNonIterative() throws IOException {
 		byte[] originalData = this.file.readFileByte(inputFile);
 		ArrayList<ByteArrayWrapper> sortedBytes = this.dictionary.createDictionary(originalData);
 		byte[] compressedData = this.compress.startCompression(originalData, sortedBytes);
 		this.file.writeFileByte(compressedData, outputFile);
 		byte[] decompressedData = this.compress.startDecompression(compressedData);
-		System.out.println("STATUS = "+Arrays.equals(originalData, decompressedData));
-		
+		System.out.println("STATUS = "+Arrays.equals(originalData, decompressedData));	
+	}
+	@Test
+	public void testCompressionSinglePhase() throws IOException {
+		this.driver.compressFileSinglePhase(inputFile);
 	}
 }

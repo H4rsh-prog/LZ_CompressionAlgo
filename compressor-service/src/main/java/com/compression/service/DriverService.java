@@ -3,6 +3,7 @@ package com.compression.service;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.function.Function;
@@ -27,6 +28,42 @@ public class DriverService {
 		this.fileHandler.setVerbose(file);
 		this.dictionaryHandler.setVerbose(dictionary);
 		this.compressionHandler.setVerbose(compression);
+	}
+	public byte[] compressFileSinglePhase(File file) throws IOException {
+		String fileName = file.getName();
+		String fileDirectory = file.getAbsolutePath();
+		byte[] byteCode = this.fileHandler.readFileByte(file);
+		ArrayList<ByteArrayWrapper> sortedBytes = this.dictionaryHandler.createDictionary(byteCode);
+		byteCode = this.compressionHandler.startCompression(byteCode, sortedBytes);
+		try {
+			this.fileHandler.writeFileByte(byteCode, new File(fileDirectory+"\\"+fileName+".compressed"));
+			this.fileHandler.writeObjectByte(sortedBytes, new File(fileDirectory+"\\"+fileName+".compressed.metadata"));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return byteCode;
+	}
+	public byte[] decompressFileSinglePhase(File file) throws IOException, ClassNotFoundException {
+		String fileName = file.getName();
+		if(!fileName.endsWith(".compressed")) {
+			System.err.println("unrecognized file naming scheme file type mismatch may occur");
+		}
+		String fileDirectory = file.getAbsolutePath();
+		byte[] byteCode = this.fileHandler.readFileByte(file);
+		ArrayList<ByteArrayWrapper> sortedBytes = null;
+		sortedBytes = this.fileHandler.readObjectByte(new File(fileDirectory+".metadata"), sortedBytes.getClass());
+		if(sortedBytes == null) {
+			System.err.println("dictionary not found");
+		} else {
+			this.compressionHandler.setSortedBytes(sortedBytes);
+			byteCode = this.compressionHandler.startDecompression(byteCode);
+			try {
+				this.fileHandler.writeFileByte(byteCode, new File((fileName.endsWith(".compressed")?fileDirectory.substring(0,fileDirectory.length()-11):fileDirectory.concat(".decompressed"))));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return byteCode;
 	}
 	
 	public byte[] compressFile(File file, double threshold) throws IOException {

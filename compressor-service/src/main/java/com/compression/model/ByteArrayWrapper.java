@@ -1,11 +1,16 @@
 package com.compression.model;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import lombok.Getter;
 
-public class ByteArrayWrapper {
+public class ByteArrayWrapper implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 7612020715874677345L;
 	@Getter private byte[] data;
 	public ByteArrayWrapper(ByteBuffer buf) {
 		updateArray(buf);
