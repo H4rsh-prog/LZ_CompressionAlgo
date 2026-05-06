@@ -41,11 +41,11 @@ public class FileCompressionTest {
 	}
 	@Test
 	public void testCompressionSinglePhase() throws IOException, ClassNotFoundException {
-//		this.driver.setVerbosity(true, true, true);
-		this.driver.setVerbosity(false, false, false);
+		this.driver.setVerbosity(true, true, true);
+//		this.driver.setVerbosity(false, false, false);
 		byte[] originalBytes = this.file.readFileByte(inputFile);
 		byte[] bytecode = this.driver.compressFileSinglePhase(inputFile);
-		File compressedFile = new File(inputFile.getAbsolutePath()+"\\"+inputFile.getName()+".compressed");
+		File compressedFile = new File(inputFile.getAbsolutePath()+"_dir\\"+inputFile.getName()+".compressed");
 		if(!compressedFile.exists()) {
 			System.err.println("compressed file not found");
 			return;
@@ -59,7 +59,7 @@ public class FileCompressionTest {
 //		this.driver.setVerbosity(false, false, false);
 		byte[] originalBytes = this.file.readFileByte(inputFile);
 		byte[] bytecode = this.driver.compressFile(inputFile, 5);
-		File compressedFile = new File(inputFile.getAbsolutePath()+"\\"+inputFile.getName()+".compressed");
+		File compressedFile = new File(inputFile.getAbsolutePath()+"_dir\\"+inputFile.getName()+".compressed");
 		if(!compressedFile.exists()) {
 			System.err.println("compressed file not found");
 			return;

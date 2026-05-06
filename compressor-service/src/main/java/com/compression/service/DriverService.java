@@ -33,8 +33,9 @@ public class DriverService {
 		String fileName = file.getName();
 		String fileDirectory = file.getAbsolutePath();
 		byte[] byteCode = this.fileHandler.readFileByte(file);
-		ArrayList<ByteArrayWrapper> sortedBytes = this.dictionaryHandler.createDictionary(byteCode);
-		byteCode = this.compressionHandler.startCompression(byteCode, sortedBytes);
+		byteCode = this.compressionHandler.startCompression(byteCode, this.dictionaryHandler.createDictionary(byteCode));
+		this.compressionHistory.clear();
+		this.compressionHistory.add(new CompressionMetadata(this.compressionHandler.getSortedBytes(), this.compressionHandler.getIndiceList()));
 		System.out.println("SINGLE PHASE COMPRESSION FINISHED");
 		try {
 			new File(fileDirectory+"_dir").mkdir();
@@ -47,9 +48,7 @@ public class DriverService {
 			compressedFile.createNewFile();
 			metadataFile.createNewFile();
 			this.fileHandler.writeFileByte(byteCode, new File(fileDirectory+"_dir\\"+fileName+".compressed"));
-			System.out.println("COMPRESSED FILE WRITTEN AT "+(fileDirectory+"_dir\\"+fileName+".compressed"));
-			this.fileHandler.writeObjectByte(sortedBytes, new File(fileDirectory+"_dir\\"+fileName+".compressed.metadata"));
-			System.out.println("METADATA OBJECT WRITTEN AT "+(fileDirectory+"_dir\\"+fileName+".compressed.metadata"));
+			this.fileHandler.writeObjectByte(this.compressionHistory, new File(fileDirectory+"_dir\\"+fileName+".compressed.metadata"));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -62,12 +61,12 @@ public class DriverService {
 		}
 		String fileDirectory = file.getAbsolutePath();
 		byte[] byteCode = this.fileHandler.readFileByte(file);
-		ArrayList<ByteArrayWrapper> sortedBytes = null;
-		sortedBytes = this.fileHandler.readObjectByte(new File(fileDirectory+".metadata"), sortedBytes.getClass());
-		if(sortedBytes == null) {
+		this.compressionHistory = this.fileHandler.readObjectByte(new File(fileDirectory+".metadata"), ArrayList.class);
+		if(this.compressionHistory == null) {
 			System.err.println("dictionary not found");
 		} else {
-			this.compressionHandler.setSortedBytes(sortedBytes);
+			this.compressionHandler.setSortedBytes(this.compressionHistory.get(0).getSortedBytes());
+			this.compressionHandler.setIndiceList(this.compressionHistory.get(0).getCompressedIndices());
 			byteCode = this.compressionHandler.startDecompression(byteCode);
 			try {
 				this.fileHandler.writeFileByte(byteCode, new File((fileName.endsWith(".compressed")?fileDirectory.substring(0,fileDirectory.length()-11):fileDirectory.concat(".decompressed"))));
@@ -96,7 +95,7 @@ public class DriverService {
 			compressionRate = 100-(((double)currentBytes.length)/byteSize)*100;
 			System.out.println("ITR ["+itr+"] : reductedBytes = ["+(byteSize - currentBytes.length)+"] ; byteSize = [old = ["+byteSize+"] ; new = ["+(currentBytes.length)+"]] ; compressionRate = ["+compressionRate+"]");
 			byteSize = currentBytes.length;
-			this.compressionHistory.add(new CompressionMetadata(sortedBytes, this.compressionHandler.getIndiceList()));
+			this.compressionHistory.add(new CompressionMetadata(this.compressionHandler.getSortedBytes(), this.compressionHandler.getIndiceList()));
 			itr++;
 			if(itr>10) break;
 		}
@@ -130,6 +129,7 @@ public class DriverService {
 			for(int i=this.compressionHistory.size()-1;i>=0;i--) {
 				System.out.println("decompression itr = "+(i+1));
 				this.compressionHandler.setSortedBytes(this.compressionHistory.get(i).getSortedBytes());
+				this.compressionHandler.setIndiceList(this.compressionHistory.get(i).getCompressedIndices());
 				byteCode = this.compressionHandler.startDecompression(byteCode);		
 			}
 			this.fileHandler.writeFileByte(byteCode, new File((fileName.endsWith(".compressed")?fileDirectory.substring(0,fileDirectory.length()-11):fileDirectory.concat(".decompressed"))));

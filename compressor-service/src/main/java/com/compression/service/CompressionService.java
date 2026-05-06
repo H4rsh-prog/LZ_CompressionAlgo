@@ -16,6 +16,7 @@ import lombok.Setter;
 
 @Service
 public class CompressionService {
+
 	final byte MARKER = (byte) 0x7F;
 	final byte ESCAPE = (byte) 0x7E;
 
@@ -24,7 +25,7 @@ public class CompressionService {
 	@Setter private boolean verbose = false;
 	@Getter private HashMap<Integer, ByteArrayWrapper> cache_intToByteArr = new HashMap<>();
 	@Getter private HashMap<ByteArrayWrapper, Integer> cache_byteArrToInt = new HashMap<>();
-	
+
 	public byte[] startCompression(byte[] prmv_byteArr, ArrayList<ByteArrayWrapper> sortedBytes) {
 		this.sortedBytes.clear();
 		this.indiceList.clear();
@@ -39,12 +40,13 @@ public class CompressionService {
 			for(int i=0;i<dictionarySize;i++) {
 				byte[] query = sortedBytes.get(i).getData();
 				int queryByteSize = Math.min(query.length, byteArr.remaining());
-				if(queryByteSize<indx) continue;
 				byte[] searchField = new byte[queryByteSize];
-//				System.out.println("qeuryByteSize = ["+queryByteSize+"] ; query.length = ["+query.length+"] ; byteArr.remaining() = ["+byteArr.remaining()+"] ; Indx = ["+indx+"]");
-				byteArr.get(searchField, indx, queryByteSize-indx);
+//				if(verbose) System.out.println("qeuryByteSize = ["+queryByteSize+"] ; query.length = ["+query.length+"] ; byteArr.remaining() = ["+byteArr.remaining()+"] ; Indx = ["+indx+"]");
+				byteArr.get(indx, searchField);
+//				if(verbose) System.out.println(ByteArrayWrapper.toString(searchField)+"\n"+ByteArrayWrapper.toString(query));
 				if(Arrays.equals(query, searchField)) {
-					byteArr = replaceBytes(byteArr.array(), indx, i, new StringBuffer("WORKING ON BYTE INDEX ["+indx+"] WITH QUERY "+ByteArrayWrapper.toString(query)+" "));
+					byteArr = compressBytes(byteArr.array(), indx, i, new StringBuffer("WORKING ON BYTE INDEX ["+indx+"] WITH QUERY "+ByteArrayWrapper.toString(query)+" "));
+					this.indiceList.add(indx);
 					indx += intToByteArr(i).getData().length;
 					break;
 				}
@@ -55,13 +57,13 @@ public class CompressionService {
 		if(verbose) System.out.println("``````````````````````````COMPRESSION FUNCTION - END");
 		return byteArr.array();
 	}
-	private ByteBuffer replaceBytes(byte[] originalBytes, int placeholderIndx, int dictionaryIndx, StringBuffer padding) {
+	private ByteBuffer compressBytes(byte[] originalBytes, int placeholderIndx, int dictionaryIndx, StringBuffer padding) {
 		int querySize = this.sortedBytes.get(dictionaryIndx).getData().length;
 		byte[] leftArr, rightArr, midArr;
 		midArr = createCompressedbytes(intToByteArr(dictionaryIndx)).array();
 		leftArr = Arrays.copyOfRange(originalBytes, 0, placeholderIndx);
-		rightArr = Arrays.copyOfRange(originalBytes, dictionaryIndx+querySize, originalBytes.length);
-		ByteBuffer newBytes = ByteBuffer.allocate(originalBytes.length-(querySize-midArr.length));
+		rightArr = Arrays.copyOfRange(originalBytes, placeholderIndx+querySize, originalBytes.length);
+		ByteBuffer newBytes = ByteBuffer.allocate(originalBytes.length+(midArr.length-querySize));
 		newBytes.put(0, leftArr);
 		newBytes.put(placeholderIndx, midArr);
 		newBytes.put(placeholderIndx+midArr.length, rightArr);
@@ -74,7 +76,7 @@ public class CompressionService {
 		if(byteSize>254) throw new RuntimeException("Byte Length Overflow");
 		ByteBuffer buffer = ByteBuffer.allocate(byteSize+1);
 		buffer.put(0, intToByteArr(byteSize).getData()[0]);
-		buffer.put(1, parsedBytes.getData());
+		buffer.put(1, byteCode);
 		buffer.rewind();
 		return buffer;
 	}
@@ -86,19 +88,36 @@ public class CompressionService {
 		byte[] leftArr;
 		byte[] rightArr;
 		byte[] midArr;
-		this.indiceList.sort(Collections.reverseOrder());;
-		for(Integer i : this.indiceList) {
+		System.out.println(this.indiceList);
+		for(int i=this.indiceList.size()-1;i>=0;i--) {
 			midArr = new byte[1];
-			midArr[0] = byteArr.get(i);
+			int placementIndx = this.indiceList.get(i);
+			midArr[0] = byteArr.get(placementIndx);
 			int byteLength = byteArrToInt(new ByteArrayWrapper(midArr));
 			midArr = new byte[byteLength];
-			byteArr.get(i+1, midArr);
+			byteArr.get(this.indiceList.get(i)+1, midArr);
 			int dictionaryIndx = byteArrToInt(new ByteArrayWrapper(midArr));
-			byteArr = replaceBytes(byteArr.array(), i, dictionaryIndx, new StringBuffer("DECOMPRESSION ON BYTE INDEX ["+i+"] WITH QUERY "+ByteArrayWrapper.toString(midArr)+" "));
+			System.out.println("DECOMPRESSION ON BYTE INDEX ["+this.indiceList.get(i)+"] WITH QUERY "+ByteArrayWrapper.toString(midArr)+" AT DICT-INDEX ["+dictionaryIndx+"]");
+			byteArr = decompressBytes(byteArr.array(), placementIndx, dictionaryIndx, new StringBuffer("DECOMPRESSION ON BYTE INDEX ["+this.indiceList.get(i)+"] WITH QUERY "+ByteArrayWrapper.toString(midArr)+" "));
 		}
 		if(verbose) System.out.println("STRING DECOMPRESSESD TO LENGTH : "+byteArr.limit());
 		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION");
 		return byteArr.array();
+	}
+	private ByteBuffer decompressBytes(byte[] compressedBytes, int placementIndx, int dictionaryIndx, StringBuffer padding) {
+		byte[] leftArr, rightArr, midArr;
+		midArr = new byte[1];
+		midArr[0] = compressedBytes[placementIndx];
+		int compressedByteLength = byteArrToInt(new ByteArrayWrapper(midArr));
+		midArr = this.sortedBytes.get(dictionaryIndx).getData();
+		leftArr = Arrays.copyOfRange(compressedBytes, 0, placementIndx);
+		rightArr = Arrays.copyOfRange(compressedBytes, placementIndx+compressedByteLength, compressedBytes.length);
+		ByteBuffer newBytes = ByteBuffer.allocate(compressedBytes.length+(midArr.length-compressedByteLength+1));	//LENGTH OF THE COMPRESSED BYTES + 1 FOR BYTE STORING THE LENGTH
+		newBytes.put(0, leftArr);
+		newBytes.put(placementIndx, midArr);
+		newBytes.put(placementIndx+midArr.length, rightArr);
+		if(verbose) System.out.println(padding.toString()+"CRUNCHED UP ["+(compressedByteLength+1)+"] BYTES INTO ["+midArr.length+"] BYTES ; UPDATED DIGEST SIZE = ["+newBytes.limit()+"] ; PREVIOUS BYTE STRING : "+ByteArrayWrapper.toString(Arrays.copyOfRange(compressedBytes, placementIndx, placementIndx+compressedByteLength))+" ; COMPRESSED BYTE STRING : "+ByteArrayWrapper.toString(midArr));
+		return newBytes;
 	}
 	
 	//ESCAPING INDEX BYTES (i.e. MARKER AND ESCAPE) SO THAT THE FUNCTIONS DONT MISREAD INDICES AS BYTECODE
