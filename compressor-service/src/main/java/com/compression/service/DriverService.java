@@ -3,8 +3,8 @@ package com.compression.service;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.function.Function;
 
@@ -35,9 +35,21 @@ public class DriverService {
 		byte[] byteCode = this.fileHandler.readFileByte(file);
 		ArrayList<ByteArrayWrapper> sortedBytes = this.dictionaryHandler.createDictionary(byteCode);
 		byteCode = this.compressionHandler.startCompression(byteCode, sortedBytes);
+		System.out.println("SINGLE PHASE COMPRESSION FINISHED");
 		try {
-			this.fileHandler.writeFileByte(byteCode, new File(fileDirectory+"\\"+fileName+".compressed"));
-			this.fileHandler.writeObjectByte(sortedBytes, new File(fileDirectory+"\\"+fileName+".compressed.metadata"));
+			new File(fileDirectory+"_dir").mkdir();
+			File compressedFile = new File(fileDirectory+"_dir\\"+fileName+".compressed");
+			File metadataFile = new File(fileDirectory+"_dir\\"+fileName+".compressed.metadata");
+			if(compressedFile.exists() || metadataFile.exists()) {
+				compressedFile.delete();
+				metadataFile.delete();
+			}
+			compressedFile.createNewFile();
+			metadataFile.createNewFile();
+			this.fileHandler.writeFileByte(byteCode, new File(fileDirectory+"_dir\\"+fileName+".compressed"));
+			System.out.println("COMPRESSED FILE WRITTEN AT "+(fileDirectory+"_dir\\"+fileName+".compressed"));
+			this.fileHandler.writeObjectByte(sortedBytes, new File(fileDirectory+"_dir\\"+fileName+".compressed.metadata"));
+			System.out.println("METADATA OBJECT WRITTEN AT "+(fileDirectory+"_dir\\"+fileName+".compressed.metadata"));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -68,6 +80,9 @@ public class DriverService {
 	
 	public byte[] compressFile(File file, double threshold) throws IOException {
 		if(threshold<5) threshold = 5;
+		this.compressionHistory.clear();
+		String fileName = file.getName();
+		String fileDirectory = file.getAbsolutePath();
 		byte[] currentBytes = fileHandler.readFileByte(file);
 		double compressionRate = 100;
 		int originalBytes = currentBytes.length;
@@ -76,18 +91,12 @@ public class DriverService {
 		int itr=1;
 		while(!(compressionRate<threshold)) {
 			System.out.println("compression itr = "+itr);
-			currentBytes = this.compressionHandler.escapeMarkerBytes(new ByteArrayWrapper(currentBytes)).getData();
 			sortedBytes = this.dictionaryHandler.createDictionary(currentBytes);
-			try {
-				currentBytes = this.compressionHandler.startCompression(currentBytes, sortedBytes);
-			} finally {
-				FileOutputStream fos =new FileOutputStream(new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\compressed_phase_"+itr));
-				fos.write(currentBytes);
-			}
+			currentBytes = this.compressionHandler.startCompression(currentBytes, sortedBytes);
 			compressionRate = 100-(((double)currentBytes.length)/byteSize)*100;
 			System.out.println("ITR ["+itr+"] : reductedBytes = ["+(byteSize - currentBytes.length)+"] ; byteSize = [old = ["+byteSize+"] ; new = ["+(currentBytes.length)+"]] ; compressionRate = ["+compressionRate+"]");
 			byteSize = currentBytes.length;
-			this.compressionHistory.add(new CompressionMetadata(sortedBytes));
+			this.compressionHistory.add(new CompressionMetadata(sortedBytes, this.compressionHandler.getIndiceList()));
 			itr++;
 			if(itr>10) break;
 		}
@@ -99,24 +108,33 @@ public class DriverService {
 				return "+ ["+t.getSortedBytes().size()+"] ELEMENTS";
 			}
 		}).toList());
+		try {
+			this.fileHandler.writeFileByte(currentBytes, new File(fileDirectory+"\\"+fileName+".compressed"));
+			this.fileHandler.writeObjectByte(this.compressionHistory, new File(fileDirectory+"\\"+fileName+".compressed.metadata"));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return currentBytes;
 	}
-	public byte[] decompressFile(File file) throws IOException {
-		byte[] currentBytes = this.fileHandler.readFileByte(file);
-		ArrayList<ByteArrayWrapper> sortedBytes;
-		for(int i=this.compressionHistory.size()-1;i>=0;i--) {
-			System.out.println("decompression itr = "+(i+1));
-			sortedBytes = this.compressionHistory.get(i).getSortedBytes();
-			this.compressionHandler.setSortedBytes(sortedBytes);
-			try {
-				currentBytes = this.compressionHandler.startDecompression(currentBytes);
-			} finally {
-				FileOutputStream fos =new FileOutputStream(new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\decompressed_phase_"+i));
-				fos.write(currentBytes);
-			}
-			currentBytes = this.compressionHandler.unescapeMarkerBytes(new ByteArrayWrapper(currentBytes)).getData();
+	public byte[] decompressFile(File file) throws IOException, ClassNotFoundException {
+		String fileName = file.getName();
+		if(!fileName.endsWith(".compressed")) {
+			System.err.println("unrecognized file naming scheme file type mismatch may occur");
 		}
-		System.out.println("DECOMPRESSED FILE BACK TO "+currentBytes.length+" BYTES");
-		return currentBytes;
+		String fileDirectory = file.getAbsolutePath();
+		byte[] byteCode = this.fileHandler.readFileByte(file);
+		this.compressionHistory = this.fileHandler.readObjectByte(new File(fileDirectory+".metadata"), this.compressionHistory.getClass());
+		if(this.compressionHistory == null) {
+			System.err.println("metadata not found");
+		} else {
+			for(int i=this.compressionHistory.size()-1;i>=0;i--) {
+				System.out.println("decompression itr = "+(i+1));
+				this.compressionHandler.setSortedBytes(this.compressionHistory.get(i).getSortedBytes());
+				byteCode = this.compressionHandler.startDecompression(byteCode);		
+			}
+			this.fileHandler.writeFileByte(byteCode, new File((fileName.endsWith(".compressed")?fileDirectory.substring(0,fileDirectory.length()-11):fileDirectory.concat(".decompressed"))));
+			System.out.println("DECOMPRESSED FILE BACK TO "+byteCode.length+" BYTES");
+		}
+		return byteCode;
 	}
 }

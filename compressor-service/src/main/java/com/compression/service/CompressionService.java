@@ -3,6 +3,7 @@ package com.compression.service;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 
 import org.springframework.stereotype.Service;
@@ -38,10 +39,12 @@ public class CompressionService {
 			for(int i=0;i<dictionarySize;i++) {
 				byte[] query = sortedBytes.get(i).getData();
 				int queryByteSize = Math.min(query.length, byteArr.remaining());
+				if(queryByteSize<indx) continue;
 				byte[] searchField = new byte[queryByteSize];
-				byteArr.get(searchField, indx, queryByteSize);
+//				System.out.println("qeuryByteSize = ["+queryByteSize+"] ; query.length = ["+query.length+"] ; byteArr.remaining() = ["+byteArr.remaining()+"] ; Indx = ["+indx+"]");
+				byteArr.get(searchField, indx, queryByteSize-indx);
 				if(Arrays.equals(query, searchField)) {
-					byteArr = replaceBytes(byteArr.array(), indx, i, new StringBuffer("[WORKING ON BYTE INDEX ["+indx+"] WITH QUERY ["+ByteArrayWrapper.toString(query)+"] ]"));
+					byteArr = replaceBytes(byteArr.array(), indx, i, new StringBuffer("WORKING ON BYTE INDEX ["+indx+"] WITH QUERY "+ByteArrayWrapper.toString(query)+" "));
 					indx += intToByteArr(i).getData().length;
 					break;
 				}
@@ -83,15 +86,15 @@ public class CompressionService {
 		byte[] leftArr;
 		byte[] rightArr;
 		byte[] midArr;
-		ArrayList<Integer> reversedIndices = this.indiceList.reversed();
-		for(Integer i : reversedIndices) {
+		this.indiceList.sort(Collections.reverseOrder());;
+		for(Integer i : this.indiceList) {
 			midArr = new byte[1];
 			midArr[0] = byteArr.get(i);
 			int byteLength = byteArrToInt(new ByteArrayWrapper(midArr));
 			midArr = new byte[byteLength];
 			byteArr.get(i+1, midArr);
 			int dictionaryIndx = byteArrToInt(new ByteArrayWrapper(midArr));
-			byteArr = replaceBytes(byteArr.array(), i, dictionaryIndx, new StringBuffer("[DECOMPRESSION ON BYTE INDEX ["+i+"] WITH QUERY ["+ByteArrayWrapper.toString(midArr)+"] ]"));
+			byteArr = replaceBytes(byteArr.array(), i, dictionaryIndx, new StringBuffer("DECOMPRESSION ON BYTE INDEX ["+i+"] WITH QUERY "+ByteArrayWrapper.toString(midArr)+" "));
 		}
 		if(verbose) System.out.println("STRING DECOMPRESSESD TO LENGTH : "+byteArr.limit());
 		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION");
