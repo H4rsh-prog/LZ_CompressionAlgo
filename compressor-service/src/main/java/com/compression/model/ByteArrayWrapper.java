@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import lombok.Getter;
+import lombok.Setter;
 
 public class ByteArrayWrapper implements Serializable {
 	/**
@@ -12,6 +13,7 @@ public class ByteArrayWrapper implements Serializable {
 	 */
 	private static final long serialVersionUID = 7612020715874677345L;
 	@Getter private byte[] data;
+	@Getter @Setter transient boolean used = false;
 	public ByteArrayWrapper(ByteBuffer buf) {
 		updateArray(buf);
 	}

@@ -23,6 +23,7 @@ public class FileHandlingService {
 		return bytes;
 	}
 	public void writeFileByte(byte[] byteArr, File file) throws IOException {
+		file.createNewFile();
 		FileOutputStream fos = new FileOutputStream(file);
 		fos.write(byteArr);
 		fos.close();
@@ -38,5 +39,4 @@ public class FileHandlingService {
 		oos.writeObject(o);
 		oos.close();
 	}
-	
 }

@@ -21,6 +21,7 @@ public class DictionaryService {
 	@Setter private int maxBytesUsed = 1;
 	@Setter private boolean verbose = false;
 	@Setter static int dictionaryLimit = 254;
+	@Setter private int additionalMarkerBytes = 1;
 	
 	public ArrayList<ByteArrayWrapper> createDictionary(byte[] byteArr) {
 		HashMap<ByteArrayWrapper, Integer> frequencyTable = new HashMap<>();
@@ -92,7 +93,7 @@ public class DictionaryService {
 		for(ByteArrayWrapper invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ByteArrayWrapper>() {
 			@Override
 			public boolean test(ByteArrayWrapper t) {
-				return t.getData().length<=(maxBytesUsed+3);
+				return t.getData().length<=(maxBytesUsed+additionalMarkerBytes);
 			}
 		}).toList()) {
 			frequencyTable.remove(invalidKeys);
