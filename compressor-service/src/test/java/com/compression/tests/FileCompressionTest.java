@@ -1,10 +1,8 @@
 package com.compression.tests;
 
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.junit.jupiter.api.AfterEach;
@@ -39,7 +37,7 @@ public class FileCompressionTest {
 		this.inputFile = null;
 		this.outputFile = null;
 	}
-	@Test
+//	@Test
 	public void testCompressionSinglePhase() throws IOException, ClassNotFoundException {
 		this.driver.setVerbosity(true, true, true);
 //		this.driver.setVerbosity(false, false, false);
@@ -53,7 +51,7 @@ public class FileCompressionTest {
 		bytecode = this.driver.decompressFileSinglePhase(compressedFile);
 		System.out.println("STATUS = "+Arrays.equals(originalBytes, bytecode));
 	}
-//	@Test
+	@Test
 	public void testCompressionIterativePhase() throws IOException, ClassNotFoundException {
 		this.driver.setVerbosity(true, true, true);
 //		this.driver.setVerbosity(false, false, false);

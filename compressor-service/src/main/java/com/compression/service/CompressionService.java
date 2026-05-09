@@ -3,8 +3,9 @@ package com.compression.service;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.function.Predicate;
 
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,34 @@ public class CompressionService {
 	@Getter private HashMap<Integer, ByteArrayWrapper> cache_intToByteArr = new HashMap<>();
 	@Getter private HashMap<ByteArrayWrapper, Integer> cache_byteArrToInt = new HashMap<>();
 
+	public ArrayList<ByteArrayWrapper> removeUnusedBytes(byte[] prmv_byteArr, ArrayList<ByteArrayWrapper> sortedBytes) {
+		ByteBuffer byteArr = ByteBuffer.wrap(prmv_byteArr);
+		while(byteArr.remaining()>0) {
+			int indx = byteArr.position();
+			if(verbose) System.out.println("COMPRESSING BYTES ["+indx+"/"+byteArr.remaining()+"]");
+			for(int i=0;i<sortedBytes.size();i++) {
+				byte[] query = sortedBytes.get(i).getData();
+				int queryByteSize = Math.min(query.length, byteArr.remaining());
+				byte[] searchField = new byte[queryByteSize];
+				byteArr.get(indx, searchField);
+				if(Arrays.equals(query, searchField)) {
+					sortedBytes.get(i).setUsed(true);
+					break;
+				}
+			}
+			byteArr.position(indx+1);
+		}
+		List<ByteArrayWrapper> unusedBytes = sortedBytes.stream().filter(new Predicate<ByteArrayWrapper>() {
+			@Override
+			public boolean test(ByteArrayWrapper t) {
+				return !t.isUsed();
+			}
+		}).toList();
+		sortedBytes.removeAll(unusedBytes);
+		return sortedBytes;
+	}
 	public byte[] startCompression(byte[] prmv_byteArr, ArrayList<ByteArrayWrapper> sortedBytes) {
+		sortedBytes = this.removeUnusedBytes(prmv_byteArr, sortedBytes);
 		this.sortedBytes.clear();
 		this.indiceList.clear();
 		this.sortedBytes=sortedBytes;
@@ -84,9 +112,6 @@ public class CompressionService {
 		ByteBuffer byteArr = ByteBuffer.wrap(prmv_byteArr);
 		if(verbose) System.out.println("``````````````````````````DECOMPRESSION FUNCTION - START");
 		if(verbose) System.out.println("STARTING WITH STRING LENGTH : "+byteArr.limit());
-		int byteArrSize = prmv_byteArr.length;
-		byte[] leftArr;
-		byte[] rightArr;
 		byte[] midArr;
 		System.out.println(this.indiceList);
 		for(int i=this.indiceList.size()-1;i>=0;i--) {
@@ -111,12 +136,12 @@ public class CompressionService {
 		int compressedByteLength = byteArrToInt(new ByteArrayWrapper(midArr));
 		midArr = this.sortedBytes.get(dictionaryIndx).getData();
 		leftArr = Arrays.copyOfRange(compressedBytes, 0, placementIndx);
-		rightArr = Arrays.copyOfRange(compressedBytes, placementIndx+compressedByteLength, compressedBytes.length);
-		ByteBuffer newBytes = ByteBuffer.allocate(compressedBytes.length+(midArr.length-compressedByteLength+1));	//LENGTH OF THE COMPRESSED BYTES + 1 FOR BYTE STORING THE LENGTH
+		rightArr = Arrays.copyOfRange(compressedBytes, placementIndx+compressedByteLength+1, compressedBytes.length);
+		ByteBuffer newBytes = ByteBuffer.allocate(compressedBytes.length+(midArr.length-(compressedByteLength+1)));	//LENGTH OF THE COMPRESSED BYTES + 1 FOR BYTE STORING THE LENGTH
 		newBytes.put(0, leftArr);
 		newBytes.put(placementIndx, midArr);
 		newBytes.put(placementIndx+midArr.length, rightArr);
-		if(verbose) System.out.println(padding.toString()+"CRUNCHED UP ["+(compressedByteLength+1)+"] BYTES INTO ["+midArr.length+"] BYTES ; UPDATED DIGEST SIZE = ["+newBytes.limit()+"] ; PREVIOUS BYTE STRING : "+ByteArrayWrapper.toString(Arrays.copyOfRange(compressedBytes, placementIndx, placementIndx+compressedByteLength))+" ; COMPRESSED BYTE STRING : "+ByteArrayWrapper.toString(midArr));
+		if(verbose) System.out.println(padding.toString()+"CRUNCHED UP ["+(compressedByteLength+1)+"] BYTES INTO ["+midArr.length+"] BYTES ; UPDATED DIGEST SIZE = ["+newBytes.limit()+"] ; PREVIOUS BYTE STRING : "+ByteArrayWrapper.toString(Arrays.copyOfRange(compressedBytes, placementIndx, placementIndx+compressedByteLength+1))+" ; COMPRESSED BYTE STRING : "+ByteArrayWrapper.toString(midArr));
 		return newBytes;
 	}
 	
