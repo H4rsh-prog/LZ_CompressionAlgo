@@ -56,6 +56,15 @@ public class ByteArrayWrapper implements Serializable {
     	sb.append("]");
     	return sb.toString();
     }
+    public static String toStringBin(byte[] data) {
+    	StringBuilder sb = new StringBuilder();
+    	sb.append("[ ");
+    	for(byte b : data) {
+    		sb.append(Integer.toBinaryString(b)+" ");
+    	}
+    	sb.append("]");
+    	return sb.toString();
+    }
     public static String toString(ByteBuffer data) {
     	StringBuilder sb = new StringBuilder();
     	sb.append("[ ");

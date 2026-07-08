@@ -2,8 +2,11 @@ package com.compression.service;
 
 import java.nio.ByteBuffer;
 
+import com.compression.model.ByteArrayWrapper;
+
 public class VarIntegerBytes {
 	public static byte[] encode(int value)  {
+		System.out.print(value + " => ");
 		byte[] buffer = new byte[5];
 		int indx = 0;
 		while((value & 0xFFFFFF80) != 0) {
@@ -13,6 +16,7 @@ public class VarIntegerBytes {
 		buffer[indx++] = (byte) (value & 0x7F);
 		byte[] result = new byte[indx];
 		System.arraycopy(buffer, 0, result, 0, indx);
+		System.out.println(ByteArrayWrapper.toStringBin(result));
 		return result;
 	}
 	public static int decode(byte[] bytes) {

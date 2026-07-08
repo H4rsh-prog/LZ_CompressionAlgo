@@ -80,7 +80,7 @@ public class DriverService {
 //		return indiceArr;
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(list.size()*5);
 		int position = 0;
-		for(int n : list) {
+		for(Integer n : list) {
 			byte[] bytes = VarIntegerBytes.encode(n);
 			try {
 				outputStream.write(bytes);
@@ -100,7 +100,7 @@ public class DriverService {
 		this.compressionHistory.clear();
 		if(storePrimitives) {
 			ArrayList<ByteArrayWrapper> byteList = generateWrapperByteList(this.fileHandler.readObjectByte(new File(fileDirectory+".dictionary.metadata"), byte[][].class));
-			ArrayList<Integer> indiceList = generateWrapperIntegerList(this.fileHandler.readObjectByte(new File(fileDirectory+".indices.metadata"), int[].class));
+			ArrayList<Integer> indiceList = generateWrapperIntegerList(this.fileHandler.readFileByte(new File(fileDirectory+".indices.metadata")));
 			this.compressionHistory.add(new CompressionMetadata(byteList, indiceList));
 		} else {
 			this.compressionHistory = this.fileHandler.readObjectByte(new File(fileDirectory+".metadata"), ArrayList.class);
@@ -126,10 +126,17 @@ public class DriverService {
 		}
 		return list;
 	}
-	private ArrayList<Integer> generateWrapperIntegerList(int[] array) {
+	private ArrayList<Integer> generateWrapperIntegerList(byte[] bytes) {
 		ArrayList<Integer> list = new ArrayList<Integer>();
-		for (int i=0;i<array.length;i++) {
-			list.add(Integer.valueOf(array[i]));
+		int i = 0;
+		int size = bytes.length;
+		for(int j=i;j<size;j++) {
+			if((bytes[j] & 0x80) == 0) {
+				byte[] buffer = new byte[(j-i)+1];
+				System.arraycopy(bytes, i, buffer, 0, (j-i)+1);
+				list.add(VarIntegerBytes.decode(buffer));
+				i = j+1;
+			}
 		}
 		return list;
 	}
