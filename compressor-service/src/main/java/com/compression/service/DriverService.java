@@ -1,5 +1,6 @@
 package com.compression.service;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -50,7 +51,7 @@ public class DriverService {
 			this.fileHandler.writeFileByte(byteCode, new File(fileDirectory+"_dir\\"+fileName+".compressed"));
 			if(storePrimitives) {
 				this.fileHandler.writeObjectByte(generatePrimitiveByteArray(this.compressionHistory.get(0).getSortedBytes()), new File(fileDirectory+"_dir\\"+fileName+".compressed.dictionary.metadata"));
-				this.fileHandler.writeObjectByte(generatePrimitiveIntegerArray(this.compressionHistory.get(0).getCompressedIndices()), new File(fileDirectory+"_dir\\"+fileName+".compressed.indices.metadata"));
+				this.fileHandler.writeFileByte(generatePrimitiveIntegerArray(this.compressionHistory.get(0).getCompressedIndices()), new File(fileDirectory+"_dir\\"+fileName+".compressed.indices.metadata"));
 			} else {
 				this.fileHandler.writeObjectByte(this.compressionHistory, new File(fileDirectory+"_dir\\"+fileName+".compressed.metadata"));
 			}
@@ -77,16 +78,17 @@ public class DriverService {
 //			indiceArr[i] = wrapper.intValue();
 //		}
 //		return indiceArr;
-		ByteBuffer buffer = ByteBuffer.allocate(list.size()*5);
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(list.size()*5);
 		int position = 0;
 		for(int n : list) {
 			byte[] bytes = VarIntegerBytes.encode(n);
-			buffer.put(position, bytes);
-			position += bytes.length;
+			try {
+				outputStream.write(bytes);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-		byte[] result = new byte[position];
-		buffer.get(result, 0, position);
-		return result;
+		return outputStream.toByteArray();
 	}
 	public byte[] decompressFileSinglePhase(File file) throws IOException, ClassNotFoundException {
 		String fileName = file.getName();
