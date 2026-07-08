@@ -2,6 +2,7 @@ package com.compression.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -68,14 +69,24 @@ public class DriverService {
 		}
 		return byteArr;
 	}
-	private int[] generatePrimitiveIntegerArray(ArrayList<Integer> list) {
-		Object[] objArr = list.toArray();
-		int[] indiceArr = new int[objArr.length];
-		for (int i=0;i<objArr.length;i++) {
-			Integer wrapper = (Integer) objArr[i];
-			indiceArr[i] = wrapper.intValue();
+	private byte[] generatePrimitiveIntegerArray(ArrayList<Integer> list) {
+//		Object[] objArr = list.toArray();
+//		int[] indiceArr = new int[objArr.length];
+//		for (int i=0;i<objArr.length;i++) {
+//			Integer wrapper = (Integer) objArr[i];
+//			indiceArr[i] = wrapper.intValue();
+//		}
+//		return indiceArr;
+		ByteBuffer buffer = ByteBuffer.allocate(list.size()*5);
+		int position = 0;
+		for(int n : list) {
+			byte[] bytes = VarIntegerBytes.encode(n);
+			buffer.put(position, bytes);
+			position += bytes.length;
 		}
-		return indiceArr;
+		byte[] result = new byte[position];
+		buffer.get(result, 0, position);
+		return result;
 	}
 	public byte[] decompressFileSinglePhase(File file) throws IOException, ClassNotFoundException {
 		String fileName = file.getName();

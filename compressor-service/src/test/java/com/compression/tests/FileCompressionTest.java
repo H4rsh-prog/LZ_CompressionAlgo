@@ -25,7 +25,7 @@ public class FileCompressionTest {
 	
 	@BeforeEach
 	public void setUp() {
-		this.inputFile = new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\input");
+		this.inputFile = new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\swiggy.csv");
 		this.outputFile = new File("C:\\Users\\User\\Documents\\workspace-spring-tools-for-eclipse-4.31.0.RELEASE\\Huffman_Compression\\compressor-service\\target\\testObjects\\output");
 		this.driver = new DriverService();
 		this.file = new FileHandlingService();
@@ -37,7 +37,7 @@ public class FileCompressionTest {
 		this.inputFile = null;
 		this.outputFile = null;
 	}
-//	@Test
+	@Test
 	public void testCompressionSinglePhase() throws IOException, ClassNotFoundException {
 		this.driver.setVerbosity(true, true, true);
 //		this.driver.setVerbosity(false, false, false);
@@ -51,7 +51,7 @@ public class FileCompressionTest {
 		bytecode = this.driver.decompressFileSinglePhase(compressedFile);
 		System.out.println("STATUS = "+Arrays.equals(originalBytes, bytecode));
 	}
-	@Test
+//	@Test
 	public void testCompressionIterativePhase() throws IOException, ClassNotFoundException {
 		this.driver.setVerbosity(true, true, true);
 //		this.driver.setVerbosity(false, false, false);
