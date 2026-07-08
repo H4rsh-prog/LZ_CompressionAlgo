@@ -183,7 +183,7 @@ public class DriverService {
 				System.out.println("size sorted "+this.compressionHistory.get(i).getSortedBytes().size());
 				this.compressionHandler.setSortedBytes(this.compressionHistory.get(i).getSortedBytes());
 				this.compressionHandler.setIndiceList(this.compressionHistory.get(i).getCompressedIndices());
-				byteCode = this.compressionHandler.startDecompression(byteCode);		
+				byteCode = this.compressionHandler.startDecompression(byteCode);
 			}
 			this.fileHandler.writeFileByte(byteCode, new File((fileName.endsWith(".compressed")?fileDirectory.substring(0,fileDirectory.length()-11):fileDirectory.concat(".decompressed"))));
 			System.out.println("DECOMPRESSED FILE BACK TO "+byteCode.length+" BYTES");

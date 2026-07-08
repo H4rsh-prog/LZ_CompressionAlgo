@@ -54,7 +54,7 @@ public class CompressionService {
 		return sortedBytes;
 	}
 	public byte[] startCompression(byte[] prmv_byteArr, ArrayList<ByteArrayWrapper> sortedBytes) {
-		sortedBytes = this.removeUnusedBytes(prmv_byteArr, sortedBytes);
+//		sortedBytes = this.removeUnusedBytes(prmv_byteArr, sortedBytes);
 		this.sortedBytes.clear();
 		this.indiceList.clear();
 		this.sortedBytes=sortedBytes;
