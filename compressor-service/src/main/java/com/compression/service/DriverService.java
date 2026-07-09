@@ -50,8 +50,8 @@ public class DriverService {
 			metadataFile.createNewFile();
 			this.fileHandler.writeFileByte(byteCode, new File(fileDirectory+"_dir\\"+fileName+".compressed"));
 			if(storePrimitives) {
-				this.fileHandler.writeObjectByte(generatePrimitiveByteArray(this.compressionHistory.get(0).getSortedBytes()), new File(fileDirectory+"_dir\\"+fileName+".compressed.dictionary.metadata"));
-				this.fileHandler.writeFileByte(generatePrimitiveIntegerArray(this.compressionHistory.get(0).getCompressedIndices()), new File(fileDirectory+"_dir\\"+fileName+".compressed.indices.metadata"));
+				this.fileHandler.writeFileByte(serializeDictionary(this.compressionHistory.get(0).getSortedBytes()), new File(fileDirectory+"_dir\\"+fileName+".compressed.dictionary.metadata"));
+				this.fileHandler.writeFileByte(serializeIndices(this.compressionHistory.get(0).getCompressedIndices()), new File(fileDirectory+"_dir\\"+fileName+".compressed.indices.metadata"));
 			} else {
 				this.fileHandler.writeObjectByte(this.compressionHistory, new File(fileDirectory+"_dir\\"+fileName+".compressed.metadata"));
 			}
@@ -61,23 +61,20 @@ public class DriverService {
 		}
 		return byteCode;
 	}
-	private byte[][] generatePrimitiveByteArray(ArrayList<ByteArrayWrapper> list) {
-		Object[] objArr = list.toArray();
-		byte[][] byteArr = new byte[objArr.length][];
-		for (int i=0;i<objArr.length;i++) {
-			ByteArrayWrapper wrapper = (ByteArrayWrapper) objArr[i];
-			byteArr[i] = wrapper.getData();
+	private byte[] serializeDictionary(ArrayList<ByteArrayWrapper> list) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		for(ByteArrayWrapper wrapper : list) {
+			byte[] data = wrapper.getData();
+			try {
+				baos.write(VarIntegerBytes.encode(data.length));
+				baos.write(data);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-		return byteArr;
+		return baos.toByteArray();
 	}
-	private byte[] generatePrimitiveIntegerArray(ArrayList<Integer> list) {
-//		Object[] objArr = list.toArray();
-//		int[] indiceArr = new int[objArr.length];
-//		for (int i=0;i<objArr.length;i++) {
-//			Integer wrapper = (Integer) objArr[i];
-//			indiceArr[i] = wrapper.intValue();
-//		}
-//		return indiceArr;
+	private byte[] serializeIndices(ArrayList<Integer> list) {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(list.size()*5);
 		int position = 0;
 		for(Integer n : list) {
@@ -99,8 +96,8 @@ public class DriverService {
 		byte[] byteCode = this.fileHandler.readFileByte(file);
 		this.compressionHistory.clear();
 		if(storePrimitives) {
-			ArrayList<ByteArrayWrapper> byteList = generateWrapperByteList(this.fileHandler.readObjectByte(new File(fileDirectory+".dictionary.metadata"), byte[][].class));
-			ArrayList<Integer> indiceList = generateWrapperIntegerList(this.fileHandler.readFileByte(new File(fileDirectory+".indices.metadata")));
+			ArrayList<ByteArrayWrapper> byteList = deserializeDictionary(this.fileHandler.readFileByte(new File(fileDirectory+".dictionary.metadata")));
+			ArrayList<Integer> indiceList = deserializeIndices(this.fileHandler.readFileByte(new File(fileDirectory+".indices.metadata")));
 			this.compressionHistory.add(new CompressionMetadata(byteList, indiceList));
 		} else {
 			this.compressionHistory = this.fileHandler.readObjectByte(new File(fileDirectory+".metadata"), ArrayList.class);
@@ -119,14 +116,25 @@ public class DriverService {
 		}
 		return byteCode;
 	}
-	private ArrayList<ByteArrayWrapper> generateWrapperByteList(byte[][] array) {
+	private ArrayList<ByteArrayWrapper> deserializeDictionary(byte[] bytes) {
 		ArrayList<ByteArrayWrapper> list = new ArrayList<ByteArrayWrapper>();
-		for (int i=0;i<array.length;i++) {
-			list.add(new ByteArrayWrapper(array[i]));
+		int i = 0;
+		int size = bytes.length;
+		for(int j=i;j<size;j++) {
+			if((bytes[j] & 0x80) == 0) {
+				byte[] buffer = new byte[(j-i)+1];
+				System.arraycopy(bytes, i, buffer, 0, (j-i)+1);
+				int length = VarIntegerBytes.decode(buffer);
+				buffer = new byte[length];
+				System.arraycopy(bytes, j+1, buffer, 0, length);
+				list.add(new ByteArrayWrapper(buffer));
+				i = j+length+1;
+				j += length;
+			}
 		}
 		return list;
 	}
-	private ArrayList<Integer> generateWrapperIntegerList(byte[] bytes) {
+	private ArrayList<Integer> deserializeIndices(byte[] bytes) {
 		ArrayList<Integer> list = new ArrayList<Integer>();
 		int i = 0;
 		int size = bytes.length;
