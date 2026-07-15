@@ -76,14 +76,15 @@ public class DriverService {
 	}
 	private byte[] serializeIndices(ArrayList<Integer> list) {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream(list.size()*5);
-		int position = 0;
+		int delta = 0;
 		for(Integer n : list) {
-			byte[] bytes = VarIntegerBytes.encode(n);
+			byte[] bytes = VarIntegerBytes.encode(n-delta);
 			try {
 				outputStream.write(bytes);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			delta = n;
 		}
 		return outputStream.toByteArray();
 	}
@@ -138,11 +139,13 @@ public class DriverService {
 		ArrayList<Integer> list = new ArrayList<Integer>();
 		int i = 0;
 		int size = bytes.length;
+		int delta = 0;
 		for(int j=i;j<size;j++) {
 			if((bytes[j] & 0x80) == 0) {
 				byte[] buffer = new byte[(j-i)+1];
 				System.arraycopy(bytes, i, buffer, 0, (j-i)+1);
-				list.add(VarIntegerBytes.decode(buffer));
+				delta += VarIntegerBytes.decode(buffer);
+				list.add(delta);
 				i = j+1;
 			}
 		}
