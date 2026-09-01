@@ -101,9 +101,10 @@ public class DictionaryService {
 		if(verbose) System.out.println("CURRENT DEPTH : " + depth);
 		ByteArrayWrapper wrapper = new ByteArrayWrapper(byteArr);
 		int len = byteArr.length;
+		int mid = len/2;
 		currentFrequency.put(wrapper, currentFrequency.getOrDefault(wrapper, 0)+1);
-		divideAndFindRepetition(Arrays.copyOfRange(byteArr, 0, (int) Math.floor(len/2)-1), currentFrequency, depth+1);
-		divideAndFindRepetition(Arrays.copyOfRange(byteArr, (int) Math.floor(len/2), len-1), currentFrequency, depth+1);
+		divideAndFindRepetition(Arrays.copyOfRange(byteArr, 0, mid), currentFrequency, depth+1);
+		divideAndFindRepetition(Arrays.copyOfRange(byteArr, mid, len), currentFrequency, depth+1);
 	}
 	//DAC APPROACH
 	
