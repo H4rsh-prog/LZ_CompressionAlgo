@@ -2,6 +2,7 @@ package com.compression.service;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,7 +24,8 @@ public class DictionaryService {
 	@Setter static int dictionaryLimit = 254;
 	@Setter private int additionalMarkerBytes = 1;
 	
-	public ArrayList<ByteArrayWrapper> createDictionary(byte[] byteArr) {
+	//LINEAR APPROACH
+	public ArrayList<ByteArrayWrapper> createDictionaryLinear(byte[] byteArr) {
 		HashMap<ByteArrayWrapper, Integer> frequencyTable = new HashMap<>();
 		HashMap<ByteArrayWrapper, Integer> temp_frequencyTable = new HashMap<>();
 		HashSet<Byte> potentialBlockStart = new HashSet<>();
@@ -63,6 +65,49 @@ public class DictionaryService {
 			temp_frequencyTable.clear();
 			i=k;
 		}
+		return sanitizeFrequencies(frequencyTable);
+	}
+	private ByteArrayWrapper findByteBlock(byte[] byteArr, HashMap<ByteArrayWrapper, Integer> frequencyTable, int startIndx) {
+		Set<ByteArrayWrapper> repeatingBlocks = frequencyTable.keySet();
+		byte[] start_byteArr = new byte[1];
+		start_byteArr[0] = byteArr[startIndx];
+		ByteArrayWrapper dataBlock = new ByteArrayWrapper(ByteBuffer.wrap(start_byteArr));
+		int byteArrSize = byteArr.length;
+		for(int i=startIndx+1;i<byteArrSize;i++) {
+			if(repeatingBlocks.contains(dataBlock)) {
+				frequencyTable.put(dataBlock, frequencyTable.getOrDefault(dataBlock, 0)+1);
+				start_byteArr = dataBlock.getData();
+				ByteBuffer newBuffer = ByteBuffer.allocate(i-startIndx+1);
+				newBuffer.put(0, start_byteArr);
+				newBuffer.put(i-startIndx, byteArr[i]);
+				newBuffer.rewind();
+				dataBlock.updateArray(newBuffer);
+				continue;
+			}
+			break;
+		}
+		return dataBlock;
+	}
+	//LINEAR APPROACH
+	
+	//DAC APPROACH
+	public ArrayList<ByteArrayWrapper> createDictionaryDAC(byte[] byteArr) {
+		HashMap<ByteArrayWrapper, Integer> frequencyTable = new HashMap<>();
+		divideAndFindRepetition(byteArr, frequencyTable, 0);
+		return sanitizeFrequencies(frequencyTable);
+	}
+	public void divideAndFindRepetition(byte[] byteArr, HashMap<ByteArrayWrapper, Integer> currentFrequency, int depth) {
+		if(byteArr.length<=1) return;
+		if(verbose) System.out.println("CURRENT DEPTH : " + depth);
+		ByteArrayWrapper wrapper = new ByteArrayWrapper(byteArr);
+		int len = byteArr.length;
+		currentFrequency.put(wrapper, currentFrequency.getOrDefault(wrapper, 0)+1);
+		divideAndFindRepetition(Arrays.copyOfRange(byteArr, 0, (int) Math.floor(len/2)-1), currentFrequency, depth+1);
+		divideAndFindRepetition(Arrays.copyOfRange(byteArr, (int) Math.floor(len/2), len-1), currentFrequency, depth+1);
+	}
+	//DAC APPROACH
+	
+	public ArrayList<ByteArrayWrapper> sanitizeFrequencies(HashMap<ByteArrayWrapper, Integer> frequencyTable){
 		int preLength = frequencyTable.size();
 		for(ByteArrayWrapper invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ByteArrayWrapper>() {
 			@Override
@@ -101,27 +146,6 @@ public class DictionaryService {
 		postLength = frequencyTable.size();
 		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING BLOCKS LARGER THAN DICTIONARY LIMIT NOW REMAINING ENTRIES : "+frequencyTable.size());
 		return generateSortedBytesFromFrequency(frequencyTable);
-	}
-	private ByteArrayWrapper findByteBlock(byte[] byteArr, HashMap<ByteArrayWrapper, Integer> frequencyTable, int startIndx) {
-		Set<ByteArrayWrapper> repeatingBlocks = frequencyTable.keySet();
-		byte[] start_byteArr = new byte[1];
-		start_byteArr[0] = byteArr[startIndx];
-		ByteArrayWrapper dataBlock = new ByteArrayWrapper(ByteBuffer.wrap(start_byteArr));
-		int byteArrSize = byteArr.length;
-		for(int i=startIndx+1;i<byteArrSize;i++) {
-			if(repeatingBlocks.contains(dataBlock)) {
-				frequencyTable.put(dataBlock, frequencyTable.getOrDefault(dataBlock, 0)+1);
-				start_byteArr = dataBlock.getData();
-				ByteBuffer newBuffer = ByteBuffer.allocate(i-startIndx+1);
-				newBuffer.put(0, start_byteArr);
-				newBuffer.put(i-startIndx, byteArr[i]);
-				newBuffer.rewind();
-				dataBlock.updateArray(newBuffer);
-				continue;
-			}
-			break;
-		}
-		return dataBlock;
 	}
 	private ArrayList<ByteArrayWrapper> generateSortedBytesFromFrequency(HashMap<ByteArrayWrapper, Integer> frequencyTable) {
 		ArrayList<ByteArrayWrapper> sortedBytes = new ArrayList<>();
