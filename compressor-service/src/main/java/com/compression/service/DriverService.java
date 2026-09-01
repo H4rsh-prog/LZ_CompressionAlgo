@@ -3,11 +3,8 @@ package com.compression.service;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 import org.springframework.stereotype.Service;
 
@@ -34,7 +31,8 @@ public class DriverService {
 		String fileName = file.getName();
 		String fileDirectory = file.getAbsolutePath();
 		byte[] byteCode = this.fileHandler.readFileByte(file);
-		byteCode = this.compressionHandler.startCompression(byteCode, this.dictionaryHandler.createDictionary(byteCode));
+//		byteCode = this.compressionHandler.startCompression(byteCode, this.dictionaryHandler.createDictionaryLinear(byteCode));
+		byteCode = this.compressionHandler.startCompression(byteCode, this.dictionaryHandler.createDictionaryDAC(byteCode));
 		this.compressionHistory.clear();
 		this.compressionHistory.add(new CompressionMetadata(this.compressionHandler.getSortedBytes(), this.compressionHandler.getIndiceList()));
 		System.out.println("SINGLE PHASE COMPRESSION FINISHED");
@@ -163,7 +161,7 @@ public class DriverService {
 		int itr=1;
 		while(!(compressionRate<threshold)) {
 			System.out.println("compression itr = "+itr);
-			currentBytes = this.compressionHandler.startCompression(currentBytes, this.dictionaryHandler.createDictionary(currentBytes));
+			currentBytes = this.compressionHandler.startCompression(currentBytes, this.dictionaryHandler.createDictionaryLinear(currentBytes));
 			compressionRate = 100-(((double)currentBytes.length)/byteSize)*100;
 			System.out.println("ITR ["+itr+"] : reductedBytes = ["+(byteSize - currentBytes.length)+"] ; byteSize = [old = ["+byteSize+"] ; new = ["+(currentBytes.length)+"]] ; compressionRate = ["+compressionRate+"]");
 			byteSize = currentBytes.length;
