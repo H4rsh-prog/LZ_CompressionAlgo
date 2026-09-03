@@ -65,6 +65,7 @@ public class CompressionService {
 		while(byteArr.remaining()>0) {
 			int indx = byteArr.position();
 			if(verbose) System.out.println("COMPRESSING BYTES ["+indx+"/"+byteArr.remaining()+"]");
+			boolean matched = false;
 			for(int i=0;i<dictionarySize;i++) {
 				byte[] query = sortedBytes.get(i).getData();
 				int queryByteSize = Math.min(query.length, byteArr.remaining());
@@ -75,11 +76,12 @@ public class CompressionService {
 				if(Arrays.equals(query, searchField)) {
 					byteArr = compressBytes(byteArr.array(), indx, i, new StringBuffer("WORKING ON BYTE INDEX ["+indx+"] WITH QUERY "+ByteArrayWrapper.toString(query)+" "));
 					this.indiceList.add(indx);
-					indx += intToByteArr(i).getData().length;
+					byteArr.position(indx + createCompressedbytes(intToByteArr(i)).array().length);
+					matched = true;
 					break;
 				}
 			}
-			byteArr.position(indx+1);
+			if(!matched) byteArr.position(indx+1);
 		}
 		if(verbose) System.out.println("STRING COMPRESSESD TO LENGTH : "+byteArr.limit());
 		if(verbose) System.out.println("``````````````````````````COMPRESSION FUNCTION - END");
