@@ -110,6 +110,7 @@ public class DictionaryService {
 	
 	public ArrayList<ByteArrayWrapper> sanitizeFrequencies(HashMap<ByteArrayWrapper, Integer> frequencyTable){
 		int preLength = frequencyTable.size();
+		// FILTERING NON REPEATING PATTERNS
 		for(ByteArrayWrapper invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ByteArrayWrapper>() {
 			@Override
 			public boolean test(ByteArrayWrapper t) {
@@ -120,6 +121,8 @@ public class DictionaryService {
 		}
 		int postLength = frequencyTable.size();
 		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING NON REPEATING BLOCKS NOW WITH REMAINING ENTRIES : "+frequencyTable.size());
+		
+		// CALCULATING MAXIMUM BYTES USED
 		preLength = postLength;
 		if(preLength>255) {
 			if(preLength>Math.pow(2, 16)) {
@@ -136,6 +139,8 @@ public class DictionaryService {
 		}
 		setDictionaryLimit((int)Math.pow(255, this.maxBytesUsed));
 		if(verbose) System.out.println("SETTING DELIMITER TO ["+this.maxBytesUsed+":"+dictionaryLimit+"] BYTES WITH THE FREQUENCY TABLE ENTRIES EXCEEDING ["+preLength+"]");
+		
+		// FILTERING PATTERNS SMALLER THAN DICTIONARY LIMIT
 		for(ByteArrayWrapper invalidKeys : frequencyTable.keySet().stream().filter(new Predicate<ByteArrayWrapper>() {
 			@Override
 			public boolean test(ByteArrayWrapper t) {
@@ -145,19 +150,69 @@ public class DictionaryService {
 			frequencyTable.remove(invalidKeys);
 		}
 		postLength = frequencyTable.size();
-		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING BLOCKS LARGER THAN DICTIONARY LIMIT NOW REMAINING ENTRIES : "+frequencyTable.size());
-		return generateSortedBytesFromFrequency(frequencyTable);
+		if(verbose) System.out.println("TABLE REDUCED BY ["+(preLength-postLength)+"] ENTRIES AFTER FILTERING BLOCKS SMALLER THAN DICTIONARY LIMIT NOW REMAINING ENTRIES : "+frequencyTable.size());
+		
+		// FILTERING OVERLAPPING PATTERNS
+		ArrayList<ByteArrayWrapper> lengthPrioritizedList = generateSortedBytesFromFrequency(frequencyTable, PRIORITY.FREQUENCY);
+		Set<ByteArrayWrapper> invalidKeys = new HashSet<ByteArrayWrapper>();
+		int len = lengthPrioritizedList.size();
+		for(int i=0;i<len;i++) {
+			byte[] superset = lengthPrioritizedList.get(i).getData();
+			int supersetLen = superset.length;
+			for(int j=0;j<len;j++) {
+				byte[] subset = lengthPrioritizedList.get(j).getData();
+				int subsetLen = subset.length;
+				// CHECKING IF SUBSET
+				for(int k=0;k+subsetLen<supersetLen;k++) {
+					if(superset[k]==subset[0]) {
+						int l = 0;
+						k++;
+						while(l<subsetLen-1) {
+							l++;
+							if(subset[l]==superset[k]) {
+								k++;
+							} else {
+								break;
+							}
+						}
+						if(l==subsetLen-1) {
+							invalidKeys.add(lengthPrioritizedList.get(j));
+						}
+					}
+				}
+			}
+		}
+		for(ByteArrayWrapper key : invalidKeys) {
+			lengthPrioritizedList.remove(key);
+		}
+		return new ArrayList<>(lengthPrioritizedList.subList(0, Math.min(dictionaryLimit, lengthPrioritizedList.size())));
 	}
-	private ArrayList<ByteArrayWrapper> generateSortedBytesFromFrequency(HashMap<ByteArrayWrapper, Integer> frequencyTable) {
+	
+	enum PRIORITY {
+		FREQUENCY,
+		LENGTH
+	}
+	private ArrayList<ByteArrayWrapper> generateSortedBytesFromFrequency(HashMap<ByteArrayWrapper, Integer> frequencyTable, PRIORITY priority) {
 		ArrayList<ByteArrayWrapper> sortedBytes = new ArrayList<>();
 		sortedBytes.addAll(frequencyTable.keySet());
-		sortedBytes.sort(new Comparator<ByteArrayWrapper>() {
-			@Override
-			public int compare(ByteArrayWrapper o1, ByteArrayWrapper o2) {
-				if(o2.getData().length!=o1.getData().length) return o2.getData().length-o1.getData().length;
-				return frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue();
-			}
-		});
-		return new ArrayList<>(sortedBytes.subList(0, Math.min(dictionaryLimit, sortedBytes.size())));	//LIMIT ENTRIES;
+		switch(priority) {
+		case LENGTH:
+			sortedBytes.sort(new Comparator<ByteArrayWrapper>() {
+				@Override
+				public int compare(ByteArrayWrapper o1, ByteArrayWrapper o2) {
+					if(o2.getData().length!=o1.getData().length) return o2.getData().length-o1.getData().length;
+					return frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue();
+				}
+			});
+			break;
+		case FREQUENCY:
+			sortedBytes.sort(new Comparator<ByteArrayWrapper>() {
+				@Override
+				public int compare(ByteArrayWrapper o1, ByteArrayWrapper o2) {
+					return frequencyTable.get(o2).intValue()-frequencyTable.get(o1).intValue();
+				}
+			});
+		}
+		return sortedBytes;
 	}
 }
