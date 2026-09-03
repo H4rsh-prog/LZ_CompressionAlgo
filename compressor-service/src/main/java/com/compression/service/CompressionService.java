@@ -210,6 +210,7 @@ public class CompressionService {
 	}
 	private ByteArrayWrapper intToByteArr(int intVal) {
 		if(this.cache_intToByteArr.containsKey(intVal)) return this.cache_intToByteArr.get(intVal);
+		int originalIntVal = intVal;
 		if(intVal==0) {
 			ByteArrayWrapper result = new ByteArrayWrapper(new byte[] {0x0});
 			this.cache_intToByteArr.put(intVal, result);
@@ -239,7 +240,7 @@ public class CompressionService {
 			 * */
 		}
 		ByteArrayWrapper wrappedResult = new ByteArrayWrapper(result);
-		this.cache_intToByteArr.put(intVal, wrappedResult);
+		this.cache_intToByteArr.put(originalIntVal, wrappedResult);
 		return wrappedResult;
 	}
 	// FOR SOME REASON MATH.CEILDIV IS THROWING AN UNRESOLVED EXCEEPTION AS IT COULD NOT FIND IT
