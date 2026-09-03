@@ -164,20 +164,9 @@ public class DictionaryService {
 				int subsetLen = subset.length;
 				// CHECKING IF SUBSET
 				for(int k=0;k+subsetLen<supersetLen;k++) {
-					if(superset[k]==subset[0]) {
-						int l = 0;
-						k++;
-						while(l<subsetLen-1) {
-							l++;
-							if(subset[l]==superset[k]) {
-								k++;
-							} else {
-								break;
-							}
-						}
-						if(l==subsetLen-1) {
-							invalidKeys.add(lengthPrioritizedList.get(j));
-						}
+					if(Arrays.equals(subset, Arrays.copyOfRange(superset, k, k+subsetLen))) {
+						invalidKeys.add(lengthPrioritizedList.get(j));
+						break;
 					}
 				}
 			}
